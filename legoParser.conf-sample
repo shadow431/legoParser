@@ -1,0 +1,7 @@
+sheetID = '<sheetIDHere>' 
+ssToken = '<apiTokenHere>'
+
+countLimit = False
+debug = False
+smartsheetDown = True
+smartsheetUp = True
