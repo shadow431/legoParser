@@ -120,13 +120,15 @@ def getLegos(pdf):
             print pageCount
         for item in pageList:
             matchItem = False
-            matchItem = re.match(r'(\d+)x \n(\d+)\n',item['text'], re.M|re.I)
+            #matchItem = re.match(r'(\d+)x ?\n(\d+)\n',item['text'], re.M|re.I)
+            matchItem = re.search(r'(\d+)x ?\n(\d+)\n',item['text'], re.M|re.I)
             if matchItem:
                lego = {}
                lego['pieces'] = int(matchItem.group(1))
                lego['id'] = matchItem.group(2)
                pageLegos.append(lego)
-        legos = legos + pageLegos
+        if len(pageLegos) > 1:
+            legos = legos + pageLegos
         pageCount += 1
     return legos
 
@@ -166,6 +168,7 @@ def getSSLegos(sheet,columnId,pictures):
         lego = {} 
         lego['row'] = row['id']
         lego['id'] = False
+        lego['pieces'] = False
         for cell in row['cells']:
             if cell['columnId'] == columnId['id']:
                 try:
@@ -187,6 +190,8 @@ def getSSLegos(sheet,columnId,pictures):
                     lego['picture'] = cell['image']
                 except KeyError:
                     continue
+        if lego['pieces'] == False:
+            lego['pieces'] = 0
         if lego['id']:
             ssLegos.append(lego)        
     return ssLegos
