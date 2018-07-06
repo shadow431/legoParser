@@ -9,7 +9,7 @@ from PIL import Image
 from io import BytesIO
 import pdfminer
 from operator import itemgetter
-import re, json, requests, urllib2,traceback, time, os
+import re, json, requests, urllib2,traceback, time, os, csv
 
 
 '''
@@ -71,6 +71,8 @@ def getColumns(sheet):
             columnId['sets'] = column['id']
         if column['title'] == 'Picture':
             columnId['picture'] = column['id']
+        if column['title'] == 'Description':
+            columnId['description'] = column['id']
     return columnId
 
 
@@ -130,6 +132,15 @@ def getLegos(pdf):
         if len(pageLegos) > 1:
             legos = legos + pageLegos
         pageCount += 1
+    return legos
+
+def getLegosCSV(csvName):
+    legos = []
+    fb = open(csvName, 'rb')
+    reader = csv.DictReader(fb)
+    for line in reader:
+        line['pieces'] = int(line['pieces'])
+        legos.append(line)
     return legos
 
 '''
@@ -289,7 +300,7 @@ if __name__ == '__main__':
         for cell in each['cells']:
             if (cell['columnId'] == columnId['process']):
                 try:
-                    if (cell['value'] == True):
+                    if cell['value'] == True or cell['value'] == 'pdf' or cell['value'] == 'csv':
                         rowId=each['id']
                 except KeyError:
                     continue
@@ -298,9 +309,15 @@ if __name__ == '__main__':
                     rowSet=cell['displayValue']
                 except KeyError:
                     continue
+            if (cell['columnId'] == columnId['description']):
+                try:
+                    rowDesc=cell['displayValue']
+                except KeyError:
+                    continue
         if rowId and rowSet:
             row['id'] = rowId
             row['set'] = rowSet
+            row['desc'] = rowDesc
             rows.append(row)
     if debug == 'smartsheet':
         print rows
@@ -315,31 +332,49 @@ if __name__ == '__main__':
     a = 0
     count = 0
     for row in rows:
+        print "Set: " + str(row['desc']) + " - " + str(row['set'])
         if a < len(attachments):
             while attachments[a]['parentId'] <= row['id']:
-                if attachments[a]['parentId'] == row['id'] and attachments[a]['parentType'] == 'ROW' and attachments[a]['mimeType'] == 'application/pdf':
+                if attachments[a]['parentId'] == row['id'] and attachments[a]['parentType'] == 'ROW' and (attachments[a]['mimeType'] == 'application/pdf' or attachments[a]['mimeType'] == 'text/csv') :
                     if debug == 'smartsheet':
                         print row
                         print attachments[a]
                     count += 1 #debug
                     if smartsheetDown == True:
-                        '''get attachment url and download the pdf'''
-                        attachmentObj = getAttachment(sheetID,attachments[a]['id'])
-                        fh = urllib2.urlopen(attachmentObj['url'])
-                        localfile = open('tmp.pdf','w')
-                        localfile.write(fh.read())
-                        localfile.close()
-                    '''process the PDF and get the legos back'''
-                    try:
-                        legos = getLegos('tmp.pdf') #wass getMeals
-                    except:
-                        print "Failed: "+ str(row)
-                        print traceback.print_exc()
-                        break
+                        if attachments[a]['mimeType'] == 'application/pdf':
+                            '''get attachment url and download the pdf'''
+                            attachmentObj = getAttachment(sheetID,attachments[a]['id'])
+                            fh = urllib2.urlopen(attachmentObj['url'])
+                            localfile = open('tmp.pdf','w')
+                            localfile.write(fh.read())
+                            localfile.close()
+                        elif attachments[a]['mimeType'] == 'text/csv':
+                            '''get attachment url and download the csv'''
+                            attachmentObj = getAttachment(sheetID,attachments[a]['id'])
+                            fh = urllib2.urlopen(attachmentObj['url'])
+                            localfile = open('tmp.csv','w')
+                            localfile.write(fh.read())
+                            localfile.close()
+                    if attachments[a]['mimeType'] == 'application/pdf':
+                        '''process the PDF and get the legos back'''
+                        try:
+                            legos = getLegos('tmp.pdf')
+                        except:
+                            print "Failed: "+ str(row)
+                            print traceback.print_exc()
+                            break
+                    elif attachments[a]['mimeType'] == 'text/csv': 
+                        '''process the CSV and get the legos back'''
+                        try:
+                            legos = getLegosCSV('tmp.csv') 
+                        except:
+                            print "Failed: "+ str(row)
+                            print traceback.print_exc()
+                            break
                     blockCount = 0
                     for lego in legos:
                         blockCount += int(lego['pieces'])
-                    print "File: " + attachments[a]['name']
+                    print "File: " + attachments[a]['name'] 
                     print "Total: " + str(blockCount)
                     print "Types: " + str(len(legos))
                     if debug == 'approve':
