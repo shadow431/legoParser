@@ -22,6 +22,19 @@ def getSheet(sheetID):
     rArr = r.json()
     return rArr
 
+def copySheet(sheetID,data):
+    jsonData = json.dumps(data)
+    url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/copy'
+    r = requests.post(url,data=jsonData, headers=headers)
+    rArr = r.json()
+    return rArr
+
+def getWorkspace(workspaceID):
+    url = 'https://api.smartsheet.com/2.0/workspaces/'+str(workspaceID)
+    r = requests.get(url, headers=headers)
+    rArr = r.json()
+    return rArr
+
 def getAttachments(sheetID):
     url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/attachments?includeAll=True'
     r = requests.get(url, headers=headers)
@@ -191,11 +204,11 @@ def getSSLegos(sheet,columnId,pictures):
                     lego['pieces'] = cell['value']
                 except KeyError:
                     continue
-            if cell['columnId'] == columnId['sets']:
-                try:
-                    lego['sets'] = cell['displayValue']
-                except KeyError:
-                    lego['sets'] = ''
+#            if cell['columnId'] == columnId['sets']:
+#                try:
+#                    lego['sets'] = cell['displayValue']
+#                except KeyError:
+#                    lego['sets'] = ''
             if cell['columnId'] == columnId['picture'] and pictures:
                 try:
                     lego['picture'] = cell['image']
@@ -225,15 +238,15 @@ def sortLegos(legos,ssLegos,legoSet):
                 if legos[a]['id'] == lego['id']:
                     legos[a]['pieces'] += lego['pieces']
                     legos[a]['row'] = lego['row']
-                    if re.match(r''+legoSet+'',lego['sets']):
-                        legos[a]['sets'] = legoSet
-                    else:
-                        legos[a]['sets'] = lego['sets'] + " " + legoSet
+                    #if re.match(r''+legoSet+'',lego['sets']):
+                    #    legos[a]['sets'] = legoSet
+                    #else:
+                    #    legos[a]['sets'] = lego['sets'] + " " + legoSet
                     legoHold = legos[a]
                     legoHold.pop('id')
                     old.append(legoHold)
                 else:
-                    legos[a]['sets'] = legoSet
+                    #legos[a]['sets'] = legoSet
                     new.append(legos[a])
                 a += 1
                 if a >= len(legos):
@@ -249,7 +262,7 @@ go to the lego site and get the picture
 NOTE: i just grabbed the URL, I dont know how long this url works for
 '''
 def getLegoImage(legoID):
-    url = 'http://cache.lego.com/media/bricks/5/2/%s.jpg' % legoID
+    url = 'https://www.lego.com/service/bricks/5/2/%s' % legoID
     r = requests.get(url)
     if len(r.content) > 0:
         byteImage = BytesIO(r.content)
@@ -261,6 +274,27 @@ def getLegoImage(legoID):
         size = False
     return image,size
     
+'''
+look to see if a sheet exists for this set,
+if not create one
+'''
+def getSetSheet(thisSet):
+    data = {} 
+    setId = thisSet['set']
+    sheetName = thisSet['desc'] + " - "  + str(setId)
+    sheetId = False
+    regex = re.escape(setId)
+    workspace = getWorkspace(ssWorkspace)
+    for sheet in workspace['sheets']:
+      if re.search(regex,sheet['name']): #, re.M|re.I):
+        sheetId = sheet['id']
+    if sheetId == False:
+      data['destinationType'] = "workspace"
+      data['destinationId'] = ssWorkspace
+      data['newName'] = sheetName
+      newSheet = copySheet(setTemplate,data)
+      sheetId = newSheet['result']['id']
+    return sheetId
 
 '''
 Main loop
@@ -379,57 +413,65 @@ if __name__ == '__main__':
                     print "Types: " + str(len(legos))
                     if debug == 'approve':
                         raw_input("Press Enter For Next")
-                    '''get the current lego list'''
-                    ssLegos = getSSLegos(sheet,columnId,False)
-                    if debug == 'smartsheet':
-                        print ssLegos
-                    ''' seperate out the legos we already have'''
-                    newLegos,oldLegos =sortLegos(legos,ssLegos,row['set'])
-                    print "New Legos: "+str(len(newLegos))
-                    print "Old Legos: "+str(len(oldLegos))
-                    print "Total: "+str(len(newLegos)+len(oldLegos)) +" (should equal above 'Types' count"
-                    '''get the dictionary ready for smartsheet'''
-                    ssDataNew = prepData(newLegos,columnId)
-                    ssDataOld = prepData(oldLegos,columnId)
-                    if debug == 'smartsheet':
-                        print "New:"
-                        print ssDataNew
-                        print "Old:"
-                        print ssDataOld
-                    '''prepare to uncheck the box so it doesn't get reprocessed'''
-                    checkData = {"id":attachments[a]['parentId'],"cells":[{"columnId":columnId['process'], "value":False}]}
-                    if smartsheetUp == True:
-                        '''upload the data'''
-                        resultNew = insertRows(sheetID,ssDataNew)
-                        if debug == 'requests':
-                            print resultNew
-                        if resultNew['resultCode'] == 0:
-                            resultOld = updateRows(sheetID,ssDataOld)
-                            if debug == 'requests':
-                                print resultOld
-                        '''if the save succeded uncheck the processing box'''
-                        if resultNew['resultCode'] == 0 and resultOld['resultCode'] == 0:
-                            updateRows(sheetID,checkData)
-                    '''get a new copy of the sheet'''
-                    sheet = getSheet(sheetID)
-                    if debug == 'smartsheet':
-                        print sheet
-                        raw_input("Press Enter to continue...")
-                    '''Stop after only some sets?'''
-                    if countLimit == True:
-                        if count > 0:
-                            exit()
+                    if blockCount > 0:
+                      setSheetID = getSetSheet(row)
+                      setSheet = getSheet(setSheetID)
+                      '''build list of columns'''
+                      setColumnId = getColumns(setSheet)
+                      if debug == 'smartsheet':
+                          print columnId
+                          raw_input("Press Enter to continue...")
+
+                      '''get the current lego list'''
+                      ssLegos = getSSLegos(setSheet,setColumnId,False)
+                      if debug == 'smartsheet':
+                          print ssLegos
+                      ''' seperate out the legos we already have'''
+                      newLegos,oldLegos =sortLegos(legos,ssLegos,row['set'])
+                      print "New Legos: "+str(len(newLegos))
+                      print "Old Legos: "+str(len(oldLegos))
+                      print "Total: "+str(len(newLegos)+len(oldLegos)) +" (should equal above 'Types' count)"
+                      '''get the dictionary ready for smartsheet'''
+                      ssDataNew = prepData(newLegos,setColumnId)
+                      ssDataOld = prepData(oldLegos,setColumnId)
+                      if debug == 'smartsheet':
+                          print "New:"
+                          print ssDataNew
+                          print "Old:"
+                          print ssDataOld
+                      '''prepare to uncheck the box so it doesn't get reprocessed'''
+                      checkData = {"id":attachments[a]['parentId'],"cells":[{"columnId":columnId['process'], "value":False}]}
+                      if smartsheetUp == True:
+                          '''upload the data'''
+                          resultNew = insertRows(setSheetID,ssDataNew)
+                          if debug == 'requests':
+                              print resultNew
+                          if resultNew['resultCode'] == 0:
+                              resultOld = updateRows(setSheetID,ssDataOld)
+                              if debug == 'requests':
+                                  print resultOld
+                          '''if the save succeded uncheck the processing box'''
+                          if resultNew['resultCode'] == 0 and resultOld['resultCode'] == 0:
+                              updateRows(sheetID,checkData)
+                          '''
+                          Find, Download and attache the indivual images for the pieces
+                          '''
+                          setSheet = getSheet(setSheetID)
+                          ssLegos = getSSLegos(setSheet,setColumnId,True)
+                          i = 0
+                          for lego in ssLegos:
+                              if 'picture' not in lego: # and a > 12:
+                                  image,size = getLegoImage(lego['id'])
+                                  if image:
+                                      results = addCellImage(setSheetID,lego,setColumnId,image,size)
+                              i += 1
+                      if debug == 'smartsheet':
+                          print sheet
+                          raw_input("Press Enter to continue...")
+                      '''Stop after only some sets?'''
+                      if countLimit == True:
+                          if count > 0:
+                              exit()
                 a += 1
                 if a>= len(attachments):
                     break
-    '''
-    Find, Download and attache the indivual images for the pieces
-    '''
-    ssLegos = getSSLegos(sheet,columnId,True)
-    a = 0
-    for lego in ssLegos:
-        if 'picture' not in lego and a > 12:
-            image,size = getLegoImage(lego['id'])
-            if image:
-                results = addCellImage(sheetID,lego,columnId,image,size)
-        a += 1
