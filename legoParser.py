@@ -78,6 +78,10 @@ def getColumns(sheet):
             columnId['id'] = column['id']
         if column['title'] == 'Pieces':
             columnId['pieces'] = column['id']
+        if column['title'] == 'Spares':
+            columnId['spares'] = column['id']
+        if column['title'] == 'Extra':
+            columnId['extra'] = column['id']
         if column['title'] == 'Process':
             columnId['process'] = column['id']
         if column['title'] == 'Sets':
@@ -147,12 +151,14 @@ def getLegos(pdf):
         pageCount += 1
     return legos
 
-def getLegosCSV(csvName):
+def getLegosCSV(csvName,pieceType):
     legos = []
     fb = open(csvName, 'rb')
     reader = csv.DictReader(fb)
     for line in reader:
-        line['pieces'] = int(line['pieces'])
+        line[pieceType] = int(line['pieces'])
+        if pieceType != 'pieces':
+          del line['pieces']
         legos.append(line)
     return legos
 
@@ -193,6 +199,8 @@ def getSSLegos(sheet,columnId,pictures):
         lego['row'] = row['id']
         lego['id'] = False
         lego['pieces'] = False
+        lego['spares'] = False
+        lego['extra'] = False
         for cell in row['cells']:
             if cell['columnId'] == columnId['id']:
                 try:
@@ -202,6 +210,16 @@ def getSSLegos(sheet,columnId,pictures):
             if cell['columnId'] == columnId['pieces']:
                 try:
                     lego['pieces'] = cell['value']
+                except KeyError:
+                    continue
+            if cell['columnId'] == columnId['spares']:
+                try:
+                    lego['spares'] = cell['value']
+                except KeyError:
+                    continue
+            if cell['columnId'] == columnId['extra']:
+                try:
+                    lego['extra'] = cell['value']
                 except KeyError:
                     continue
 #            if cell['columnId'] == columnId['sets']:
@@ -216,6 +234,10 @@ def getSSLegos(sheet,columnId,pictures):
                     continue
         if lego['pieces'] == False:
             lego['pieces'] = 0
+        if lego['spares'] == False:
+            lego['spares'] = 0
+        if lego['extra'] == False:
+            lego['extra'] = 0
         if lego['id']:
             ssLegos.append(lego)        
     return ssLegos
@@ -225,7 +247,7 @@ seperate out the legos into two groups
 the ones that I already have some of,
 and the ones i dont yet have any of
 '''
-def sortLegos(legos,ssLegos,legoSet):
+def sortLegos(legos,ssLegos,legoSet,pieceType):
     new = []
     old = []
     legos = sorted(legos,key=itemgetter('id'))
@@ -236,7 +258,7 @@ def sortLegos(legos,ssLegos,legoSet):
         if a < len(legos):
             while legos[a]['id'] <= lego['id']:
                 if legos[a]['id'] == lego['id']:
-                    legos[a]['pieces'] += lego['pieces']
+                    legos[a][pieceType] += lego[pieceType]
                     legos[a]['row'] = lego['row']
                     #if re.match(r''+legoSet+'',lego['sets']):
                     #    legos[a]['sets'] = legoSet
@@ -336,6 +358,7 @@ if __name__ == '__main__':
                 try:
                     if cell['value'] == True or cell['value'] == 'pdf' or cell['value'] == 'csv':
                         rowId=each['id']
+                        procType = cell['value']
                 except KeyError:
                     continue
             if (cell['columnId'] == columnId['id']):
@@ -352,6 +375,7 @@ if __name__ == '__main__':
             row['id'] = rowId
             row['set'] = rowSet
             row['desc'] = rowDesc
+            row['procType'] = str(procType)
             rows.append(row)
     if debug == 'smartsheet':
         print rows
@@ -366,6 +390,7 @@ if __name__ == '__main__':
     a = 0
     count = 0
     for row in rows:
+        pieceType = 'pieces'
         print "Set: " + str(row['desc']) + " - " + str(row['set'])
         if a < len(attachments):
             while attachments[a]['parentId'] <= row['id']:
@@ -389,7 +414,7 @@ if __name__ == '__main__':
                             localfile = open('tmp.csv','w')
                             localfile.write(fh.read())
                             localfile.close()
-                    if attachments[a]['mimeType'] == 'application/pdf':
+                    if attachments[a]['mimeType'] == 'application/pdf' and (row['procType'] == 'True' or row['procType'] == 'pdf'):
                         '''process the PDF and get the legos back'''
                         try:
                             legos = getLegos('tmp.pdf')
@@ -397,17 +422,21 @@ if __name__ == '__main__':
                             print "Failed: "+ str(row)
                             print traceback.print_exc()
                             break
-                    elif attachments[a]['mimeType'] == 'text/csv': 
+                    elif attachments[a]['mimeType'] == 'text/csv' and (row['procType'] == 'True' or row['procType'] == 'csv'):
+                        if re.search(r'spares',attachments[a]['name'], re.I):
+                          pieceType = 'spares'
+                        if re.search(r'extra',attachments[a]['name'], re.I):
+                          pieceType = 'extra'
                         '''process the CSV and get the legos back'''
                         try:
-                            legos = getLegosCSV('tmp.csv') 
+                            legos = getLegosCSV('tmp.csv',pieceType) 
                         except:
                             print "Failed: "+ str(row)
                             print traceback.print_exc()
                             break
                     blockCount = 0
                     for lego in legos:
-                        blockCount += int(lego['pieces'])
+                        blockCount += int(lego[pieceType])
                     print "File: " + attachments[a]['name'] 
                     print "Total: " + str(blockCount)
                     print "Types: " + str(len(legos))
@@ -427,7 +456,7 @@ if __name__ == '__main__':
                       if debug == 'smartsheet':
                           print ssLegos
                       ''' seperate out the legos we already have'''
-                      newLegos,oldLegos =sortLegos(legos,ssLegos,row['set'])
+                      newLegos,oldLegos =sortLegos(legos,ssLegos,row['set'],pieceType)
                       print "New Legos: "+str(len(newLegos))
                       print "Old Legos: "+str(len(oldLegos))
                       print "Total: "+str(len(newLegos)+len(oldLegos)) +" (should equal above 'Types' count)"
@@ -451,8 +480,8 @@ if __name__ == '__main__':
                               if debug == 'requests':
                                   print resultOld
                           '''if the save succeded uncheck the processing box'''
-                          if resultNew['resultCode'] == 0 and resultOld['resultCode'] == 0:
-                              updateRows(sheetID,checkData)
+#                          if resultNew['resultCode'] == 0 and resultOld['resultCode'] == 0:
+#                              updateRows(sheetID,checkData)
                           '''
                           Find, Download and attache the indivual images for the pieces
                           '''
