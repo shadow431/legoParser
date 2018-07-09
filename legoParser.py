@@ -390,11 +390,11 @@ if __name__ == '__main__':
     a = 0
     count = 0
     for row in rows:
-        pieceType = 'pieces'
         print "Set: " + str(row['desc']) + " - " + str(row['set'])
         if a < len(attachments):
             while attachments[a]['parentId'] <= row['id']:
                 if attachments[a]['parentId'] == row['id'] and attachments[a]['parentType'] == 'ROW' and (attachments[a]['mimeType'] == 'application/pdf' or attachments[a]['mimeType'] == 'text/csv') :
+                    pieceType = 'pieces'
                     if debug == 'smartsheet':
                         print row
                         print attachments[a]
@@ -414,7 +414,7 @@ if __name__ == '__main__':
                             localfile = open('tmp.csv','w')
                             localfile.write(fh.read())
                             localfile.close()
-                    if attachments[a]['mimeType'] == 'application/pdf' and (row['procType'] == 'True' or row['procType'] == 'pdf'):
+                    if (attachments[a]['mimeType'] == 'application/pdf') and (row['procType'] == 'pdf' or row['procType'] == 'True' ):
                         '''process the PDF and get the legos back'''
                         try:
                             legos = getLegos('tmp.pdf')
@@ -422,7 +422,7 @@ if __name__ == '__main__':
                             print "Failed: "+ str(row)
                             print traceback.print_exc()
                             break
-                    elif attachments[a]['mimeType'] == 'text/csv' and (row['procType'] == 'True' or row['procType'] == 'csv'):
+                    elif (attachments[a]['mimeType'] == 'text/csv') and (row['procType'] == 'csv' or row['procType'] == 'True'):
                         if re.search(r'spares',attachments[a]['name'], re.I):
                           pieceType = 'spares'
                         if re.search(r'extra',attachments[a]['name'], re.I):
@@ -434,6 +434,9 @@ if __name__ == '__main__':
                             print "Failed: "+ str(row)
                             print traceback.print_exc()
                             break
+                    else:
+                        a += 1
+                        continue
                     blockCount = 0
                     for lego in legos:
                         blockCount += int(lego[pieceType])
@@ -480,8 +483,8 @@ if __name__ == '__main__':
                               if debug == 'requests':
                                   print resultOld
                           '''if the save succeded uncheck the processing box'''
-#                          if resultNew['resultCode'] == 0 and resultOld['resultCode'] == 0:
-#                              updateRows(sheetID,checkData)
+                          if resultNew['resultCode'] == 0 and resultOld['resultCode'] == 0:
+                              updateRows(sheetID,checkData)
                           '''
                           Find, Download and attache the indivual images for the pieces
                           '''
