@@ -24,7 +24,7 @@ def getSheet(sheetID):
 
 def copySheet(sheetID,data):
     jsonData = json.dumps(data)
-    url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/copy'
+    url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/copy?include=data'
     r = requests.post(url,data=jsonData, headers=headers)
     rArr = r.json()
     return rArr
