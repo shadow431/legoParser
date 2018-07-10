@@ -98,6 +98,7 @@ this function takes a pdf and pulls the data and returns the full set of legos f
 '''
 def getLegos(pdf):
     legos = []
+    l = 1
 
     ''' Set parameters for pdf analysis.'''
     laparams = LAParams()
@@ -145,7 +146,9 @@ def getLegos(pdf):
                lego = {}
                lego['pieces'] = int(matchItem.group(1))
                lego['id'] = matchItem.group(2)
+               lego['order'] = l
                pageLegos.append(lego)
+               l += 1
         if len(pageLegos) > 1:
             legos = legos + pageLegos
         pageCount += 1
@@ -464,6 +467,10 @@ if __name__ == '__main__':
                       print "Old Legos: "+str(len(oldLegos))
                       print "Total: "+str(len(newLegos)+len(oldLegos)) +" (should equal above 'Types' count)"
                       '''get the dictionary ready for smartsheet'''
+                      try:
+                        newLegos = sorted(newLegos,key=itemgetter('order'))
+                      except:
+                        pass
                       ssDataNew = prepData(newLegos,setColumnId)
                       ssDataOld = prepData(oldLegos,setColumnId)
                       if debug == 'smartsheet':
