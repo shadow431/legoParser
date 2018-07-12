@@ -10,19 +10,21 @@ from io import BytesIO
 import pdfminer
 from operator import itemgetter
 import re, json, requests, urllib2,traceback, time, os, csv
-
+#import logging
 
 '''
 get the smartsheet data
 TODO: replace with sdk
 '''
 def getSheet(sheetID):
+    headers = {'Authorization': 'Bearer '+str(ssToken)}
     url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)
     r = requests.get(url, headers=headers)
     rArr = r.json()
     return rArr
 
 def copySheet(sheetID,data):
+    headers = {'Authorization': 'Bearer '+str(ssToken)}
     jsonData = json.dumps(data)
     url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/copy?include=data'
     r = requests.post(url,data=jsonData, headers=headers)
@@ -30,36 +32,58 @@ def copySheet(sheetID,data):
     return rArr
 
 def getWorkspace(workspaceID):
+    headers = {'Authorization': 'Bearer '+str(ssToken)}
     url = 'https://api.smartsheet.com/2.0/workspaces/'+str(workspaceID)
     r = requests.get(url, headers=headers)
     rArr = r.json()
     return rArr
 
 def getAttachments(sheetID):
+    headers = {'Authorization': 'Bearer '+str(ssToken)}
     url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/attachments?includeAll=True'
     r = requests.get(url, headers=headers)
     rArr = r.json()
     return rArr
 
 def getAttachment(sheetID,attachmentID):
+    headers = {'Authorization': 'Bearer '+str(ssToken)}
+    # These two lines enable debugging at httplib level (requests->urllib3->http.client)
+    # You will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but without DATA.
+    # The only thing missing will be the response.body which is not logged.
+#    try:
+#        import http.client as http_client
+#    except ImportError:
+#        # Python 2
+#        import httplib as http_client
+#    http_client.HTTPConnection.debuglevel = 2
+#    # You must initialize logging, otherwise you'll not see debug output.
+#    logging.basicConfig()
+#    logging.getLogger().setLevel(logging.DEBUG)
+#    requests_log = logging.getLogger("requests.packages.urllib3")
+#    requests_log.setLevel(logging.DEBUG)
+#    requests_log.propagate = True
+
     url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/attachments/'+str(attachmentID)
     r = requests.get(url, headers=headers)
     rArr = r.json()
     return rArr
 
 def insertRows(sheetId,data):
+    headers = {'Authorization': 'Bearer '+str(ssToken)}
     jsonData = json.dumps(data)
     url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetId)+'/rows'
     r = requests.post(url, data=jsonData, headers=headers)
     return r.json()
 
 def updateRows(sheetId,data):
+    headers = {'Authorization': 'Bearer '+str(ssToken)}
     data = json.dumps(data)
     url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetId)+'/rows'
     r = requests.put(url, data=data, headers=headers)
     return r.json()
 
 def addCellImage(sheetID,lego,columnId,image,imageSize):
+    headers = {'Authorization': 'Bearer '+str(ssToken)}
     url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/rows/'+str(lego['row'])+'/columns/'+str(columnId['picture'])+'/cellimages?altText='+str(lego['id'])
     headers['Content-Type'] = "application/jpeg"
     headers['Content-Disposition'] = 'attachment; filename="%s.jpg"'%lego['id']
@@ -328,7 +352,6 @@ if __name__ == '__main__':
 
     '''bring in config'''
     execfile("legoParser.conf", locals())
-    headers = {'Authorization': 'Bearer '+str(ssToken)}
 
     '''get sheet data'''
     sheet = getSheet(sheetID)
