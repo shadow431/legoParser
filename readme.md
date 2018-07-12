@@ -5,10 +5,16 @@
 
 <h3>legoPaser.conf options</h3>
   **sheetID**
-      This is the sheetID were it will grab the attachments, and upload the parsed data
+      This is the sheetID were it will grab the attachments
+
+  **setTemplate**
+      This is the sheet that will be coppied to be used for new inventory sheets
   
   **ssToken**
       This will be your smartsheet API token
+
+  **ssWorkspace**
+      This is the workspace that will be search for an existing set sheet, and will be used to place new set sheets
   
   **countLimit**
       activates a count in the row attachment processor to force a premeture completion after x lego sets
@@ -28,3 +34,22 @@
   
   **smartsheetUP**
       Boolean used to set whether or not to upload the data once processed back up to smartsheet
+
+
+<h3> ToDo</h3>
+ - add requests debugging to the output for debug=requests
+ - add switch for weather or not to download the images
+ - add retry logic to api/web calls
+   - perhaps a sing function to make web calls used by api specific functions
+ - add exception handling/logging to pdf/set name parsing
+ - remove part additive math, just replace whats there since we are not keeping a cross set total sum any more, its just set by set
+    - this allows to not have to worry if a set gets processed multiple times
+ - add logic to remove "delete" rows, and add in the set name in row1 desc column, and setID in row1 Id column
+    - idea: when looping though original rows create an array of rowIds that contain the word "delete" in the row for use at the end of processing
+         this prevents us from looping the whole sheet trying to delete the rows every time even after their are gone.
+ - workspace change management
+   - one script that takes arguments?
+
+ - update expected column formula to include the missing column
+ - Move Desc colunm to first position
+ - Put "Summary:" into the Desc column of the first row
