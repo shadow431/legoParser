@@ -311,16 +311,20 @@ go to the lego site and get the picture
 NOTE: i just grabbed the URL, I dont know how long this url works for
 '''
 def getLegoImage(legoID):
-    url = 'https://www.lego.com/service/bricks/5/2/%s' % legoID
-    r = requests.get(url)
-    if len(r.content) > 0:
-        byteImage = BytesIO(r.content)
-        byteImage.seek(0, 2)
-        size = byteImage.tell()
-        image = r.content
-    else:
-        image = False
-        size = False
+    baseUrl = 'https://www.lego.com/service/bricks'
+    urlNumbers = ['5','4']
+    for i in urlNumbers:
+      url = '%s/%s/2/%s' % (baseUrl, i, legoID)
+      r = requests.get(url)
+      if len(r.content) > 0:
+          byteImage = BytesIO(r.content)
+          byteImage.seek(0, 2)
+          size = byteImage.tell()
+          image = r.content
+          break
+      else:
+          image = False
+          size = False
     return image,size
     
 '''
