@@ -42,8 +42,6 @@
  - add retry logic to api/web calls
    - perhaps a sing function to make web calls used by api specific functions
  - add exception handling/logging to pdf/set name parsing
- - remove part additive math, just replace whats there since we are not keeping a cross set total sum any more, its just set by set
-    - this allows to not have to worry if a set gets processed multiple times
  - add logic to remove "delete" rows, and add in the set name in row1 desc column, and setID in row1 Id column
     - idea: when looping though original rows create an array of rowIds that contain the word "delete" in the row for use at the end of processing
          this prevents us from looping the whole sheet trying to delete the rows every time even after their are gone.
