@@ -285,7 +285,7 @@ def sortLegos(legos,ssLegos,legoSet,pieceType):
         if a < len(legos):
             while legos[a]['id'] <= lego['id']:
                 if legos[a]['id'] == lego['id']:
-                    legos[a][pieceType] += lego[pieceType]
+                    legos[a][pieceType] = lego[pieceType]
                     legos[a]['row'] = lego['row']
                     #if re.match(r''+legoSet+'',lego['sets']):
                     #    legos[a]['sets'] = legoSet
