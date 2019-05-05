@@ -87,7 +87,7 @@ def addCellImage(sheetID,lego,columnId,image,imageSize):
     url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/rows/'+str(lego['row'])+'/columns/'+str(columnId['picture'])+'/cellimages?altText='+str(lego['id'])
     headers['Content-Type'] = "application/jpeg"
     headers['Content-Disposition'] = 'attachment; filename="%s.jpg"'%lego['id']
-    headers['Content-Length'] = imageSize
+    headers['Content-Length'] = str(imageSize)
     r = requests.post(url, data=image, headers=headers)
     return r.json
 
