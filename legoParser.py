@@ -10,8 +10,15 @@ from io import BytesIO
 import pdfminer
 from operator import itemgetter
 import re, json, requests, urllib2,traceback, time, os, csv
-#import logging
+import logging
 
+logger = logging.getLogger('legoParser')
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('legoParser.log')
+fh.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 '''
 get the smartsheet data
 TODO: replace with sdk
@@ -161,7 +168,7 @@ def getLegos(pdf):
         '''
         pageLegos = []
         if debug == 'pdf':
-            print pageCount
+            logger.debug(pageCount)
         for item in pageList:
             matchItem = False
             #matchItem = re.match(r'(\d+)x ?\n(\d+)\n',item['text'], re.M|re.I)
@@ -360,19 +367,19 @@ if __name__ == '__main__':
     '''get sheet data'''
     sheet = getSheet(sheetID)
     if debug == 'smartsheet':
-        print sheet
+        logger.debug(sheet)
         raw_input("Press Enter to continue...")
 
     '''build list of columns'''
     columnId = getColumns(sheet)
     if debug == 'smartsheet':
-        print columnId
+        logger.debug(columnId)
         raw_input("Press Enter to continue...")
 
     '''Get list of attachments'''
     attachments = getAttachments(sheetID)
     if debug == 'smartsheet':
-        print attachments
+        logger.debug(attachments)
         raw_input("Press Enter to continue...")
 
     rows = []
@@ -408,26 +415,26 @@ if __name__ == '__main__':
             row['procType'] = str(procType)
             rows.append(row)
     if debug == 'smartsheet':
-        print rows
+        logger.debug(rows)
         raw_input("Press Enter to continue...")
     '''
     Performance Help:
        Run through the list of rows to be processed and select out only the needed attachments?
     '''
     '''run through all sheet attacments'''
-    attachments = sorted(attachments['data'],key=itemgetter('parentId'))
+    attachments = sorted(attachments['data'],key=itemgetter('parentId','mimeType'))
     rows = sorted(rows,key=itemgetter('id'))
     a = 0
     count = 0
     for row in rows:
-        print "Set: " + str(row['desc']) + " - " + str(row['set'])
+        logger.info("Set: " + str(row['desc']) + " - " + str(row['set']))
         if a < len(attachments):
             while attachments[a]['parentId'] <= row['id']:
                 if attachments[a]['parentId'] == row['id'] and attachments[a]['parentType'] == 'ROW' and (attachments[a]['mimeType'] == 'application/pdf' or attachments[a]['mimeType'] == 'text/csv') :
                     pieceType = 'pieces'
                     if debug == 'smartsheet':
-                        print row
-                        print attachments[a]
+                        logger.debug(row)
+                        logger.debug(attachments[a])
                     count += 1 #debug
                     if smartsheetDown == True:
                         if attachments[a]['mimeType'] == 'application/pdf':
@@ -449,8 +456,8 @@ if __name__ == '__main__':
                         try:
                             legos = getLegos('tmp.pdf')
                         except:
-                            print "Failed: "+ str(row)
-                            print traceback.print_exc()
+                            logger.error("Failed: "+ str(row))
+                            logger.debug(traceback.print_exc())
                             break
                     elif (attachments[a]['mimeType'] == 'text/csv') and (row['procType'] == 'csv' or row['procType'] == 'True'):
                         if re.search(r'spares',attachments[a]['name'], re.I):
@@ -461,8 +468,8 @@ if __name__ == '__main__':
                         try:
                             legos = getLegosCSV('tmp.csv',pieceType) 
                         except:
-                            print "Failed: "+ str(row)
-                            print traceback.print_exc()
+                            logger.error("Failed: "+ str(row))
+                            logger.debug(traceback.print_exc())
                             break
                     else:
                         a += 1
@@ -470,9 +477,9 @@ if __name__ == '__main__':
                     blockCount = 0
                     for lego in legos:
                         blockCount += int(lego[pieceType])
-                    print "File: " + attachments[a]['name'] 
-                    print "Total: " + str(blockCount)
-                    print "Types: " + str(len(legos))
+                    logger.info("File: " + attachments[a]['name'])
+                    logger.info("Total: " + str(blockCount))
+                    logger.info("Types: " + str(len(legos)))
                     if debug == 'approve':
                         raw_input("Press Enter For Next")
                     if blockCount > 0:
@@ -481,18 +488,18 @@ if __name__ == '__main__':
                       '''build list of columns'''
                       setColumnId = getColumns(setSheet)
                       if debug == 'smartsheet':
-                          print columnId
+                          logger.debug(columnId)
                           raw_input("Press Enter to continue...")
 
                       '''get the current lego list'''
                       ssLegos = getSSLegos(setSheet,setColumnId,False)
                       if debug == 'smartsheet':
-                          print ssLegos
+                          logger.debug(ssLegos)
                       ''' seperate out the legos we already have'''
                       newLegos,oldLegos =sortLegos(legos,ssLegos,row['set'],pieceType)
-                      print "New Legos: "+str(len(newLegos))
-                      print "Old Legos: "+str(len(oldLegos))
-                      print "Total: "+str(len(newLegos)+len(oldLegos)) +" (should equal above 'Types' count)"
+                      loggger.info("New Legos: "+str(len(newLegos)))
+                      loggger.info("Old Legos: "+str(len(oldLegos)))
+                      loggger.info("Total: "+str(len(newLegos)+len(oldLegos)) +" (should equal above 'Types' count)")
                       '''get the dictionary ready for smartsheet'''
                       try:
                         newLegos = sorted(newLegos,key=itemgetter('order'))
@@ -501,21 +508,21 @@ if __name__ == '__main__':
                       ssDataNew = prepData(newLegos,setColumnId)
                       ssDataOld = prepData(oldLegos,setColumnId)
                       if debug == 'smartsheet':
-                          print "New:"
-                          print ssDataNew
-                          print "Old:"
-                          print ssDataOld
+                          logger.debug("New:")
+                          logger.debug(ssDataNew)
+                          logger.debug("Old:")
+                          logger.debug(ssDataOld)
                       '''prepare to uncheck the box so it doesn't get reprocessed'''
                       checkData = {"id":attachments[a]['parentId'],"cells":[{"columnId":columnId['process'], "value":False}]}
                       if smartsheetUp == True:
                           '''upload the data'''
                           resultNew = insertRows(setSheetID,ssDataNew)
                           if debug == 'requests':
-                              print resultNew
+                              logger.debug(resultNew)
                           if resultNew['resultCode'] == 0:
                               resultOld = updateRows(setSheetID,ssDataOld)
                               if debug == 'requests':
-                                  print resultOld
+                                  logger.debug(resultOld)
                           '''if the save succeded uncheck the processing box'''
                           if resultNew['resultCode'] == 0 and resultOld['resultCode'] == 0:
                               updateRows(sheetID,checkData)
@@ -527,12 +534,13 @@ if __name__ == '__main__':
                           i = 0
                           for lego in ssLegos:
                               if 'picture' not in lego: # and a > 12:
+                                  logger.debug(lego)
                                   image,size = getLegoImage(lego['id'])
                                   if image:
                                       results = addCellImage(setSheetID,lego,setColumnId,image,size)
                               i += 1
                       if debug == 'smartsheet':
-                          print sheet
+                          logger.debug(sheet)
                           raw_input("Press Enter to continue...")
                       '''Stop after only some sets?'''
                       if countLimit == True:
