@@ -9,7 +9,7 @@ from PIL import Image
 from io import BytesIO
 import pdfminer
 from operator import itemgetter
-import re, json, requests, urllib2,traceback, time, os, csv
+import re, json, requests, urllib.request, urllib.error, urllib.parse,traceback, time, os, csv
 import logging
 
 logger = logging.getLogger('legoParser')
@@ -362,25 +362,25 @@ Main loop
 if __name__ == '__main__':
 
     '''bring in config'''
-    execfile("legoParser.conf", locals())
+    exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
 
     '''get sheet data'''
     sheet = getSheet(sheetID)
     if debug == 'smartsheet':
         logger.debug(sheet)
-        raw_input("Press Enter to continue...")
+        input("Press Enter to continue...")
 
     '''build list of columns'''
     columnId = getColumns(sheet)
     if debug == 'smartsheet':
         logger.debug(columnId)
-        raw_input("Press Enter to continue...")
+        input("Press Enter to continue...")
 
     '''Get list of attachments'''
     attachments = getAttachments(sheetID)
     if debug == 'smartsheet':
         logger.debug(attachments)
-        raw_input("Press Enter to continue...")
+        input("Press Enter to continue...")
 
     rows = []
     count = 0
@@ -416,7 +416,7 @@ if __name__ == '__main__':
             rows.append(row)
     if debug == 'smartsheet':
         logger.debug(rows)
-        raw_input("Press Enter to continue...")
+        input("Press Enter to continue...")
     '''
     Performance Help:
        Run through the list of rows to be processed and select out only the needed attachments?
@@ -440,14 +440,14 @@ if __name__ == '__main__':
                         if attachments[a]['mimeType'] == 'application/pdf':
                             '''get attachment url and download the pdf'''
                             attachmentObj = getAttachment(sheetID,attachments[a]['id'])
-                            fh = urllib2.urlopen(attachmentObj['url'])
+                            fh = urllib.request.urlopen(attachmentObj['url'])
                             localfile = open('tmp.pdf','w')
                             localfile.write(fh.read())
                             localfile.close()
                         elif attachments[a]['mimeType'] == 'text/csv':
                             '''get attachment url and download the csv'''
                             attachmentObj = getAttachment(sheetID,attachments[a]['id'])
-                            fh = urllib2.urlopen(attachmentObj['url'])
+                            fh = urllib.request.urlopen(attachmentObj['url'])
                             localfile = open('tmp.csv','w')
                             localfile.write(fh.read())
                             localfile.close()
@@ -481,7 +481,7 @@ if __name__ == '__main__':
                     logger.info("Total: " + str(blockCount))
                     logger.info("Types: " + str(len(legos)))
                     if debug == 'approve':
-                        raw_input("Press Enter For Next")
+                        input("Press Enter For Next")
                     if blockCount > 0:
                       setSheetID = getSetSheet(row)
                       setSheet = getSheet(setSheetID)
@@ -489,7 +489,7 @@ if __name__ == '__main__':
                       setColumnId = getColumns(setSheet)
                       if debug == 'smartsheet':
                           logger.debug(columnId)
-                          raw_input("Press Enter to continue...")
+                          input("Press Enter to continue...")
 
                       '''get the current lego list'''
                       ssLegos = getSSLegos(setSheet,setColumnId,False)
@@ -541,7 +541,7 @@ if __name__ == '__main__':
                               i += 1
                       if debug == 'smartsheet':
                           logger.debug(sheet)
-                          raw_input("Press Enter to continue...")
+                          input("Press Enter to continue...")
                       '''Stop after only some sets?'''
                       if countLimit == True:
                           if count > 0:
