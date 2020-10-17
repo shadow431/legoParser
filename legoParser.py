@@ -9,11 +9,14 @@ from PIL import Image
 from io import BytesIO
 import pdfminer
 from operator import itemgetter
-import re, json, requests, urllib.request, urllib.error, urllib.parse,traceback, time, os, csv
+from urllib.error import HTTPError
+import re, json, requests, urllib.request, urllib.parse,traceback, time, os, csv, rebrick
 import logging
 
-logger = logging.getLogger('legoParser')
-logger.setLevel(logging.DEBUG)
+logFile='legoParser.log'
+logging.basicConfig(level=logging.DEBUG,filename=logFile)
+logger = logging.getLogger(logFile)
+#logger.setLevel(logging.DEBUG)
 fh = logging.FileHandler('legoParser.log')
 fh.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -72,6 +75,8 @@ def getAttachment(sheetID,attachmentID):
 
     url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/attachments/'+str(attachmentID)
     r = requests.get(url, headers=headers)
+    logger.debug(f"attachment request status {r}")
+    logger.debug(f"attachment request response {r.json()}")
     rArr = r.json()
     return rArr
 
@@ -121,7 +126,26 @@ def getColumns(sheet):
             columnId['picture'] = column['id']
         if column['title'] == 'Description':
             columnId['description'] = column['id']
+        if column['title'] == 'Color':
+            columnId['color'] = column['id']
     return columnId
+
+'''
+Fill in the blanks
+'''
+def legoDetail(legos,columns,rebrickableAPIKey):
+  i = 0
+  while True:
+    if i >= len(legos):
+        break
+    logger.debug(legos[i])
+    details = getElementDetails(legos[i]['id'],rebrickableAPIKey)
+    legos[i]['description'] = details['part']['name']
+    legos[i]['color'] = details['color']['name']
+    legos[i]['picture'] = details['element_img_url']
+    logger.debug(legos[i])
+    i += 1
+  return legos
 
 
 '''
@@ -235,6 +259,7 @@ def getSSLegos(sheet,columnId,pictures):
         lego['pieces'] = False
         lego['spares'] = False
         lego['extra'] = False
+        lego['url'] = False
         for cell in row['cells']:
             if cell['columnId'] == columnId['id']:
                 try:
@@ -265,7 +290,10 @@ def getSSLegos(sheet,columnId,pictures):
                 try:
                     lego['picture'] = cell['image']
                 except KeyError:
-                    continue
+                    try:
+                      lego['url'] = cell['value']
+                    except KeyError:
+                      continue
         if lego['pieces'] == False:
             lego['pieces'] = 0
         if lego['spares'] == False:
@@ -299,7 +327,7 @@ def sortLegos(legos,ssLegos,legoSet,pieceType):
                     #else:
                     #    legos[a]['sets'] = lego['sets'] + " " + legoSet
                     legoHold = legos[a]
-                    legoHold.pop('id')
+                    #legoHold.pop('id') #why?
                     old.append(legoHold)
                 else:
                     #legos[a]['sets'] = legoSet
@@ -314,24 +342,42 @@ def sortLegos(legos,ssLegos,legoSet,pieceType):
     return new,old
 
 '''
-go to the lego site and get the picture
-NOTE: i just grabbed the URL, I dont know how long this url works for
+Get the lego part details from rebrickable
 '''
-def getLegoImage(legoID):
-    baseUrl = 'https://www.lego.com/service/bricks'
-    urlNumbers = ['5','4']
-    for i in urlNumbers:
-      url = '%s/%s/2/%s' % (baseUrl, i, legoID)
-      r = requests.get(url)
-      if len(r.content) > 0:
-          byteImage = BytesIO(r.content)
-          byteImage.seek(0, 2)
-          size = byteImage.tell()
-          image = r.content
-          break
-      else:
-          image = False
-          size = False
+def getElementDetails(legoID,rebrickAPIKey):
+    waitTime = 10
+    rebrick.init(rebrickAPIKey)
+    while True:
+      try:
+        response = rebrick.lego.get_element(legoID)
+      except HTTPError as err:
+          if err.code == 429:
+            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
+            time.sleep(waitTime)
+            waitTime += waitTime
+            continue
+          else:
+            raise
+      break
+    parts = json.loads(response.read())
+    logger.debug(parts)
+    return parts
+    
+'''
+Get the lego part and images from rebrickable
+'''
+def getLegoImage(url):
+    r = requests.get(url)
+    logger.debug(f"image response: {r.status_code}")
+    if len(r.content) > 0 and r.status_code == 200:
+        byteImage = BytesIO(r.content)
+        byteImage.seek(0, 2)
+        size = byteImage.tell()
+        image = r.content
+    else:
+        logger.debug(f"No Piece Image")
+        image = False
+        size = False
     return image,size
     
 '''
@@ -360,23 +406,27 @@ def getSetSheet(thisSet):
 Main loop
 '''
 if __name__ == '__main__':
-
+    logger.info("Starting Lego Parser")
     '''bring in config'''
+    logger.info("Reading Config")
     exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
 
     '''get sheet data'''
+    logger.info("Downloading the Sheet")
     sheet = getSheet(sheetID)
     if debug == 'smartsheet':
         logger.debug(sheet)
         input("Press Enter to continue...")
 
     '''build list of columns'''
+    logger.info("Getting Sheet Columns")
     columnId = getColumns(sheet)
     if debug == 'smartsheet':
         logger.debug(columnId)
         input("Press Enter to continue...")
 
     '''Get list of attachments'''
+    logger.info("Getting the attachments")
     attachments = getAttachments(sheetID)
     if debug == 'smartsheet':
         logger.debug(attachments)
@@ -386,6 +436,7 @@ if __name__ == '__main__':
     count = 0
 
     '''see if the row needs to be processed'''
+    logger.info("Searching the rows for something to process")
     for each in sheet['rows']:
         row = {}
         rowId = False
@@ -414,6 +465,7 @@ if __name__ == '__main__':
             row['desc'] = rowDesc
             row['procType'] = str(procType)
             rows.append(row)
+    logger.info(f"{len(rows)} rows to process")
     if debug == 'smartsheet':
         logger.debug(rows)
         input("Press Enter to continue...")
@@ -422,6 +474,7 @@ if __name__ == '__main__':
        Run through the list of rows to be processed and select out only the needed attachments?
     '''
     '''run through all sheet attacments'''
+    logger.info(f"Going through attachments")
     attachments = sorted(attachments['data'],key=itemgetter('parentId','mimeType'))
     rows = sorted(rows,key=itemgetter('id'))
     a = 0
@@ -438,10 +491,11 @@ if __name__ == '__main__':
                     count += 1 #debug
                     if smartsheetDown == True:
                         if attachments[a]['mimeType'] == 'application/pdf':
+                            logger.debug(f"Getting attachmentID: {attachments[a]['id']}")
                             '''get attachment url and download the pdf'''
                             attachmentObj = getAttachment(sheetID,attachments[a]['id'])
                             fh = urllib.request.urlopen(attachmentObj['url'])
-                            localfile = open('tmp.pdf','w')
+                            localfile = open('tmp.pdf','wb')
                             localfile.write(fh.read())
                             localfile.close()
                         elif attachments[a]['mimeType'] == 'text/csv':
@@ -497,14 +551,17 @@ if __name__ == '__main__':
                           logger.debug(ssLegos)
                       ''' seperate out the legos we already have'''
                       newLegos,oldLegos =sortLegos(legos,ssLegos,row['set'],pieceType)
-                      loggger.info("New Legos: "+str(len(newLegos)))
-                      loggger.info("Old Legos: "+str(len(oldLegos)))
-                      loggger.info("Total: "+str(len(newLegos)+len(oldLegos)) +" (should equal above 'Types' count)")
+                      logger.info("New Legos: "+str(len(newLegos)))
+                      logger.info("Old Legos: "+str(len(oldLegos)))
+                      logger.info("Total: "+str(len(newLegos)+len(oldLegos)) +" (should equal above 'Types' count)")
                       '''get the dictionary ready for smartsheet'''
                       try:
                         newLegos = sorted(newLegos,key=itemgetter('order'))
                       except:
                         pass
+                      logger.info('process pieces for full details')
+                      fullDataNew = legoDetail(newLegos,setColumnId,rebrickableAPIKey)
+                      fullDataOld = legoDetail(oldLegos,setColumnId,rebrickableAPIKey)
                       ssDataNew = prepData(newLegos,setColumnId)
                       ssDataOld = prepData(oldLegos,setColumnId)
                       if debug == 'smartsheet':
@@ -529,14 +586,16 @@ if __name__ == '__main__':
                           '''
                           Find, Download and attache the indivual images for the pieces
                           '''
+                          logger.info("Downloading Piece images")
                           setSheet = getSheet(setSheetID)
                           ssLegos = getSSLegos(setSheet,setColumnId,True)
                           i = 0
                           for lego in ssLegos:
-                              if 'picture' not in lego: # and a > 12:
+                              if 'url' in lego: # and a > 12:
                                   logger.debug(lego)
-                                  image,size = getLegoImage(lego['id'])
+                                  image,size = getLegoImage(lego['url'])
                                   if image:
+                                      logger.info(f"Uploading Image with size of {size}")
                                       results = addCellImage(setSheetID,lego,setColumnId,image,size)
                               i += 1
                       if debug == 'smartsheet':
