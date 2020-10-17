@@ -136,13 +136,38 @@ Fill in the blanks
 def legoDetail(legos,columns,rebrickableAPIKey):
   i = 0
   while True:
+    getDetails = False
+    setDesc = False
+    setColor = False
+    setPic = False
     if i >= len(legos):
         break
     logger.debug(legos[i])
-    details = getElementDetails(legos[i]['id'],rebrickableAPIKey)
-    legos[i]['description'] = details['part']['name']
-    legos[i]['color'] = details['color']['name']
-    legos[i]['picture'] = details['element_img_url']
+    try:
+      legos[i]['description']
+    except KeyError:
+      logger.debug('no desc')
+      getDetails = True
+      setDesc = True
+    try:
+      legos[i]['color']
+    except KeyError:
+      getDetails = True
+      setColor = True
+      logger.debug('no color')
+    if not ( 'picture' or 'url') in legos[i]:
+      logger.debug('no pic or url')
+      getDetails = True
+      setPic = True
+    if getDetails == True:
+      details = getElementDetails(legos[i]['id'],rebrickableAPIKey)
+      if setDesc == True:
+        legos[i]['description'] = details['part']['name']
+      if setColor == True:
+        legos[i]['color'] = details['color']['name']
+      if setPic == True:
+        legos[i]['picture'] = details['element_img_url']
+      time.sleep(1)
     logger.debug(legos[i])
     i += 1
   return legos
@@ -236,6 +261,8 @@ def prepData(legos, columnIds):
             row['toBottom'] = True
             pass
         for item in lego:
+            if item == 'picture' and isinstance(lego[item],dict):
+                continue
             try:
                 columns ={}
                 columns['columnId'] = columnIds[item]
@@ -259,8 +286,18 @@ def getSSLegos(sheet,columnId,pictures):
         lego['pieces'] = False
         lego['spares'] = False
         lego['extra'] = False
-        lego['url'] = False
+        #lego['url'] = False
         for cell in row['cells']:
+            if cell['columnId'] == columnId['description']:
+                try:
+                    lego['description'] = cell['displayValue']
+                except KeyError:
+                    continue
+            if cell['columnId'] == columnId['color']:
+                try:
+                    lego['color'] = cell['displayValue']
+                except KeyError:
+                    continue
             if cell['columnId'] == columnId['id']:
                 try:
                     lego['id'] = cell['displayValue']
@@ -326,7 +363,8 @@ def sortLegos(legos,ssLegos,legoSet,pieceType):
                     #    legos[a]['sets'] = legoSet
                     #else:
                     #    legos[a]['sets'] = lego['sets'] + " " + legoSet
-                    legoHold = legos[a]
+                    #legoHold = legos[a]
+                    legoHold = lego
                     #legoHold.pop('id') #why?
                     old.append(legoHold)
                 else:
