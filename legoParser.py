@@ -251,6 +251,7 @@ Here the columnId and lego dictionary keys need to match
 this stiches everything together to build the smartsheet rows with parentId
 '''
 def prepData(legos, columnIds):
+    logging.debug('prepData')
     ssdata = []
     for lego in legos:
         row = {}
@@ -323,7 +324,8 @@ def getSSLegos(sheet,columnId,pictures):
 #                    lego['sets'] = cell['displayValue']
 #                except KeyError:
 #                    lego['sets'] = ''
-            if cell['columnId'] == columnId['picture'] and pictures:
+            if cell['columnId'] == columnId['picture']:# and pictures:
+                logger.debug(cell)
                 try:
                     lego['picture'] = cell['image']
                 except KeyError:
@@ -588,7 +590,7 @@ if __name__ == '__main__':
                       if debug == 'smartsheet':
                           logger.debug(ssLegos)
                       ''' seperate out the legos we already have'''
-                      newLegos,oldLegos =sortLegos(legos,ssLegos,row['set'],pieceType)
+                      newLegos,oldLegos = sortLegos(legos,ssLegos,row['set'],pieceType)
                       logger.info("New Legos: "+str(len(newLegos)))
                       logger.info("Old Legos: "+str(len(oldLegos)))
                       logger.info("Total: "+str(len(newLegos)+len(oldLegos)) +" (should equal above 'Types' count)")
