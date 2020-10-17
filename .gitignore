@@ -3,3 +3,5 @@
 *.conf
 *.conf-*
 venv/
+*.log*
+*.bak
