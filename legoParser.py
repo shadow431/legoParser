@@ -10,99 +10,19 @@ from io import BytesIO
 import pdfminer
 from operator import itemgetter
 from urllib.error import HTTPError
-import re, json, requests, urllib.request, urllib.parse,traceback, time, os, csv, rebrick
+import re, json, urllib.request, urllib.parse,traceback, time, os, csv, rebrick, requests
 import logging
+from smartsheet import smartsheet
 
 logFile='legoParser.log'
 logging.basicConfig(level=logging.DEBUG,filename=logFile)
-logger = logging.getLogger(logFile)
+logger = logging.getLogger('legoparser')
 #logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler('legoParser.log')
+fh = logging.FileHandler(logFile)
 fh.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
 logger.addHandler(fh)
-'''
-get the smartsheet data
-TODO: replace with sdk
-'''
-def getSheet(sheetID):
-    headers = {'Authorization': 'Bearer '+str(ssToken)}
-    url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)
-    r = requests.get(url, headers=headers)
-    rArr = r.json()
-    return rArr
-
-def copySheet(sheetID,data):
-    headers = {'Authorization': 'Bearer '+str(ssToken)}
-    jsonData = json.dumps(data)
-    url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/copy?include=data'
-    r = requests.post(url,data=jsonData, headers=headers)
-    rArr = r.json()
-    return rArr
-
-def getWorkspace(workspaceID):
-    headers = {'Authorization': 'Bearer '+str(ssToken)}
-    url = 'https://api.smartsheet.com/2.0/workspaces/'+str(workspaceID)
-    r = requests.get(url, headers=headers)
-    rArr = r.json()
-    return rArr
-
-def getAttachments(sheetID):
-    headers = {'Authorization': 'Bearer '+str(ssToken)}
-    url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/attachments?includeAll=True'
-    r = requests.get(url, headers=headers)
-    rArr = r.json()
-    return rArr
-
-def getAttachment(sheetID,attachmentID):
-    headers = {'Authorization': 'Bearer '+str(ssToken)}
-    # These two lines enable debugging at httplib level (requests->urllib3->http.client)
-    # You will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but without DATA.
-    # The only thing missing will be the response.body which is not logged.
-#    try:
-#        import http.client as http_client
-#    except ImportError:
-#        # Python 2
-#        import httplib as http_client
-#    http_client.HTTPConnection.debuglevel = 2
-#    # You must initialize logging, otherwise you'll not see debug output.
-#    logging.basicConfig()
-#    logging.getLogger().setLevel(logging.DEBUG)
-#    requests_log = logging.getLogger("requests.packages.urllib3")
-#    requests_log.setLevel(logging.DEBUG)
-#    requests_log.propagate = True
-
-    url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/attachments/'+str(attachmentID)
-    r = requests.get(url, headers=headers)
-    logger.debug(f"attachment request status {r}")
-    logger.debug(f"attachment request response {r.json()}")
-    rArr = r.json()
-    return rArr
-
-def insertRows(sheetId,data):
-    headers = {'Authorization': 'Bearer '+str(ssToken)}
-    jsonData = json.dumps(data)
-    url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetId)+'/rows'
-    r = requests.post(url, data=jsonData, headers=headers)
-    return r.json()
-
-def updateRows(sheetId,data):
-    headers = {'Authorization': 'Bearer '+str(ssToken)}
-    data = json.dumps(data)
-    url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetId)+'/rows'
-    r = requests.put(url, data=data, headers=headers)
-    return r.json()
-
-def addCellImage(sheetID,lego,columnId,image,imageSize):
-    headers = {'Authorization': 'Bearer '+str(ssToken)}
-    url = 'https://api.smartsheet.com/2.0/sheets/'+str(sheetID)+'/rows/'+str(lego['row'])+'/columns/'+str(columnId['picture'])+'/cellimages?altText='+str(lego['id'])
-    headers['Content-Type'] = "application/jpeg"
-    headers['Content-Disposition'] = 'attachment; filename="%s.jpg"'%lego['id']
-    headers['Content-Length'] = str(imageSize)
-    r = requests.post(url, data=image, headers=headers)
-    return r.json
-
 
 '''
 using the sheet data, get a dictionary of columnId's that we care about
@@ -246,7 +166,7 @@ def getLegosCSV(csvName,pieceType):
     return legos
 
 '''
-prepare the data for smartsheet.
+prepare the data for ss.
 Here the columnId and lego dictionary keys need to match
 this stiches everything together to build the smartsheet rows with parentId
 '''
@@ -430,7 +350,7 @@ def getSetSheet(thisSet):
     sheetName = thisSet['desc'] + " - "  + str(setId)
     sheetId = False
     regex = re.escape(setId)
-    workspace = getWorkspace(ssWorkspace)
+    workspace = ss.getWorkspace(ssWorkspace)
     for sheet in workspace['sheets']:
       if re.search(regex,sheet['name']): #, re.M|re.I):
         sheetId = sheet['id']
@@ -438,7 +358,7 @@ def getSetSheet(thisSet):
       data['destinationType'] = "workspace"
       data['destinationId'] = ssWorkspace
       data['newName'] = sheetName
-      newSheet = copySheet(setTemplate,data)
+      newSheet = ss.copySheet(setTemplate,data)
       sheetId = newSheet['result']['id']
     return sheetId
 
@@ -450,10 +370,10 @@ if __name__ == '__main__':
     '''bring in config'''
     logger.info("Reading Config")
     exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
-
+    ss = smartsheet(ssToken)
     '''get sheet data'''
     logger.info("Downloading the Sheet")
-    sheet = getSheet(sheetID)
+    sheet = ss.getSheet(sheetID)
     if debug == 'smartsheet':
         logger.debug(sheet)
         input("Press Enter to continue...")
@@ -467,7 +387,7 @@ if __name__ == '__main__':
 
     '''Get list of attachments'''
     logger.info("Getting the attachments")
-    attachments = getAttachments(sheetID)
+    attachments = ss.getAttachments(sheetID)
     if debug == 'smartsheet':
         logger.debug(attachments)
         input("Press Enter to continue...")
@@ -533,14 +453,14 @@ if __name__ == '__main__':
                         if attachments[a]['mimeType'] == 'application/pdf':
                             logger.debug(f"Getting attachmentID: {attachments[a]['id']}")
                             '''get attachment url and download the pdf'''
-                            attachmentObj = getAttachment(sheetID,attachments[a]['id'])
+                            attachmentObj = ss.getAttachment(sheetID,attachments[a]['id'])
                             fh = urllib.request.urlopen(attachmentObj['url'])
                             localfile = open('tmp.pdf','wb')
                             localfile.write(fh.read())
                             localfile.close()
                         elif attachments[a]['mimeType'] == 'text/csv':
                             '''get attachment url and download the csv'''
-                            attachmentObj = getAttachment(sheetID,attachments[a]['id'])
+                            attachmentObj = ss.getAttachment(sheetID,attachments[a]['id'])
                             fh = urllib.request.urlopen(attachmentObj['url'])
                             localfile = open('tmp.csv','w')
                             localfile.write(fh.read())
@@ -578,7 +498,7 @@ if __name__ == '__main__':
                         input("Press Enter For Next")
                     if blockCount > 0:
                       setSheetID = getSetSheet(row)
-                      setSheet = getSheet(setSheetID)
+                      setSheet = ss.getSheet(setSheetID)
                       '''build list of columns'''
                       setColumnId = getColumns(setSheet)
                       if debug == 'smartsheet':
@@ -613,21 +533,20 @@ if __name__ == '__main__':
                       checkData = {"id":attachments[a]['parentId'],"cells":[{"columnId":columnId['process'], "value":False}]}
                       if smartsheetUp == True:
                           '''upload the data'''
-                          resultNew = insertRows(setSheetID,ssDataNew)
+                          resultNew = ss.insertRows(setSheetID,ssDataNew)
                           if debug == 'requests':
                               logger.debug(resultNew)
                           if resultNew['resultCode'] == 0:
-                              resultOld = updateRows(setSheetID,ssDataOld)
-                              if debug == 'requests':
-                                  logger.debug(resultOld)
+                              resultOld = ss.updateRows(setSheetID,ssDataOld)
+                              logger.debug(resultOld)
                           '''if the save succeded uncheck the processing box'''
                           if resultNew['resultCode'] == 0 and resultOld['resultCode'] == 0:
-                              updateRows(sheetID,checkData)
+                              ss.updateRows(sheetID,checkData)
                           '''
                           Find, Download and attache the indivual images for the pieces
                           '''
                           logger.info("Downloading Piece images")
-                          setSheet = getSheet(setSheetID)
+                          setSheet = ss.getSheet(setSheetID)
                           ssLegos = getSSLegos(setSheet,setColumnId,True)
                           i = 0
                           for lego in ssLegos:
@@ -636,7 +555,7 @@ if __name__ == '__main__':
                                   image,size = getLegoImage(lego['url'])
                                   if image:
                                       logger.info(f"Uploading Image with size of {size}")
-                                      results = addCellImage(setSheetID,lego,setColumnId,image,size)
+                                      results = ss.addCellImage(setSheetID,lego,setColumnId,image,size)
                               i += 1
                       if debug == 'smartsheet':
                           logger.debug(sheet)
