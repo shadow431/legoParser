@@ -7,20 +7,20 @@ class smartsheet:
     self.ssToken = ssToken
     self.logger = logging.getLogger('legoparser.smartsheet')
 
-def smartsheetRequest(self,endpoint,endpointID,data=None,method='GET',action=None,headers={}):
-      headers['Authorization'] = f'Bearer {self.ssToken}'
-      url = f'https://api.smartsheet.com/2.0/{endpoint}/{endpointID}'
-      if action:
-        url += action
-      if method == 'GET':
-        r = requests.get(url, headers=headers)
-      elif method == 'POST':
-        r = requests.post(url, data=data, headers=headers)
-      elif method == 'PUT':
-        r = requests.put(url, data=data, headers=headers)
-      rArr = r.json()
-      return rArr
-  
+  def smartsheetRequest(self,endpoint,endpointID,data=None,method='GET',action=None,headers={}):
+        headers['Authorization'] = f'Bearer {self.ssToken}'
+        url = f'https://api.smartsheet.com/2.0/{endpoint}/{endpointID}'
+        if action:
+          url += action
+        if method == 'GET':
+          r = requests.get(url, headers=headers)
+        elif method == 'POST':
+          r = requests.post(url, data=data, headers=headers)
+        elif method == 'PUT':
+          r = requests.put(url, data=data, headers=headers)
+        rArr = r.json()
+        return rArr
+
   def getSheet(self,sheetID):
       return self.smartsheetRequest('sheets',sheetID)
   
