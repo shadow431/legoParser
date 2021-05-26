@@ -48,6 +48,8 @@ def getColumns(sheet):
             columnId['description'] = column['id']
         if column['title'] == 'Color':
             columnId['color'] = column['id']
+        if column['title'] == 'Release':
+            columnId['release'] = column['id']
     return columnId
 
 '''
@@ -324,6 +326,28 @@ def getElementDetails(legoID,rebrickAPIKey):
     return parts
     
 '''
+Get the lego set details from rebrickable
+'''
+def getSets(legoID,rebrickAPIKey):
+    waitTime = 10
+    rebrick.init(rebrickAPIKey)
+    while True:
+      try:
+        response = rebrick.lego.get_sets(search=legoID)
+      except HTTPError as err:
+          if err.code == 429:
+            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
+            time.sleep(waitTime)
+            waitTime += waitTime
+            continue
+          else:
+            raise
+      break
+    parts = json.loads(response.read())
+    #logger.debug(parts)
+    return parts
+
+'''
 Get the lego part and images from rebrickable
 '''
 def getLegoImage(url):
@@ -393,14 +417,19 @@ if __name__ == '__main__':
         input("Press Enter to continue...")
 
     rows = []
+    updates = []
     count = 0
 
     '''see if the row needs to be processed'''
     logger.info("Searching the rows for something to process")
     for each in sheet['rows']:
         row = {}
+        update = {}
         rowId = False
         rowSet = False
+        rowPhoto = False
+        rowDesc = False
+        rowRelease = False
         for cell in each['cells']:
             if (cell['columnId'] == columnId['process']):
                 try:
@@ -419,12 +448,29 @@ if __name__ == '__main__':
                     rowDesc=cell['displayValue']
                 except KeyError:
                     continue
+            if (cell['columnId'] == columnId['release']):
+                try:
+                    rowRelease=cell['displayValue']
+                except KeyError:
+                    continue
+            if (cell['columnId'] == columnId['picture']):
+                try:
+                    rowPhoto=cell['image']
+                except KeyError:
+                    continue
         if rowId and rowSet:
             row['id'] = rowId
             row['set'] = rowSet
             row['desc'] = rowDesc
             row['procType'] = str(procType)
             rows.append(row)
+        if rowSet and (rowDesc == False or rowPhoto == False):
+            update['id'] = each['id']
+            update['set'] = rowSet
+            update['desc'] = rowDesc
+            update['photo'] = rowPhoto
+            update['release'] = rowRelease
+            updates.append(update)
     logger.info(f"{len(rows)} rows to process")
     if debug == 'smartsheet':
         logger.debug(rows)
@@ -567,3 +613,46 @@ if __name__ == '__main__':
                 a += 1
                 if a>= len(attachments):
                     break
+    sets = []
+#    d = 0
+    for update in updates:
+        setDetails = {}
+        setDetails['row'] = update['id']
+        setDetails['id'] = update['set']
+        logger.debug("Update: "+json.dumps(update)+"\n")
+        legoSet = getSets(update['set'],rebrickableAPIKey)
+        logger.debug(legoSet)
+        if legoSet['count'] == 1:
+            #setDetails['id'] = legoSet['results'][0]['set_num'] #rebrickable setnum
+            if update['desc'] == False:
+                setDetails['description'] = legoSet['results'][0]['name']
+            elif update['desc'] != legoSet['results'][0]['name'] and re.search(r'\(',update['desc']) == None:
+                setDetails['description'] = legoSet['results'][0]['name'] + " ("+update['desc'] +")"
+            if update['photo'] == False:
+                image,size = getLegoImage(legoSet['results'][0]['set_img_url'])
+                if image:
+                    logger.info(f"Uploading Image with size of {size}")
+                    results = ss.addCellImage(sheetID,setDetails,columnId,image,size)
+            if update['release'] == False:
+                setDetails['release'] = legoSet['results'][0]['year']
+        elif legoSet['count'] > 1:
+            logger.debug("To May options for "+update['set'])
+            continue
+        elif legoSet['count'] == 0:
+            logger.debug("No Options for "+update['set'])
+            continue
+        del setDetails['id']
+        logger.info(setDetails)
+        if len(setDetails) > 1:
+          sets.append(setDetails)
+#        d += 1
+#        if d >= 5:
+#            break
+    logger.debug(sets)
+    ssSetDetails = prepData(sets,columnId)
+    logger.debug(ssSetDetails)
+    result = ss.updateRows(sheetID,ssSetDetails)
+    logger.debug(result)
+    '''if the save succeded uncheck the processing box'''
+    if result['resultCode'] != 0:
+        logger.error(result)

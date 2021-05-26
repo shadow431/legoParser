@@ -53,3 +53,5 @@
  - update expected column formula to include the missing column
  - Move Desc colunm to first position
  - Put "Summary:" into the Desc column of the first row
+ - func getSSLegos is the third argument 'pictures' required?
+ - added theme from rebrickable to Theme Column?
