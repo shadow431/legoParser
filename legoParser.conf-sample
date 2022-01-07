@@ -1,5 +1,9 @@
 sheetID = '<sheetIDHere>' 
+setTemplate = '<templateSheetIDhere>'
+ssWorkspace = '<legoWorkspaceHere>'
+
 ssToken = '<apiTokenHere>'
+rebrickableAPIKey = '<rebrickableAPIkeyHere>'
 
 countLimit = False
 debug = False
