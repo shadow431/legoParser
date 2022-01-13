@@ -383,8 +383,8 @@ def getSetSheet(thisSet):
       if re.search(regex,sheet['name']): #, re.M|re.I):
         sheetId = sheet['id']
     if sheetId == False:
-      data['destinationType'] = "workspace"
-      data['destinationId'] = ssWorkspace
+      data['destinationType'] = "folder"
+      data['destinationId'] = ssSetsFolder
       data['newName'] = sheetName
       newSheet = ss.copySheet(setTemplate,data)
       sheetId = newSheet['result']['id']

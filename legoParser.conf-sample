@@ -1,6 +1,7 @@
 sheetID = '<sheetIDHere>' 
 setTemplate = '<templateSheetIDhere>'
 ssWorkspace = '<legoWorkspaceHere>'
+ssSetsFolder = '<Folder to place Set sheets in>'
 
 ssToken = '<apiTokenHere>'
 rebrickableAPIKey = '<rebrickableAPIkeyHere>'
