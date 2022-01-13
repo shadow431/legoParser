@@ -82,7 +82,11 @@ def legoDetail(legos,columns,rebrickableAPIKey):
       getDetails = True
       setPic = True
     if getDetails == True:
-      details = getElementDetails(legos[i]['id'],rebrickableAPIKey)
+      try:
+        details = getElementDetails(legos[i]['id'],rebrickableAPIKey)
+      except:
+        i += 1
+        continue
       if setDesc == True:
         legos[i]['description'] = details['part']['name']
       if setColor == True:
