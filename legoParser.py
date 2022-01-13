@@ -15,11 +15,11 @@ import logging
 from smartsheet import smartsheet
 
 logFile='legoParser.log'
-logging.basicConfig(level=logging.DEBUG,filename=logFile)
+#logging.basicConfig(level=logging.DEBUG,filename=logFile)
 logger = logging.getLogger('legoparser')
-#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 fh = logging.FileHandler(logFile)
-fh.setLevel(logging.DEBUG)
+#fh.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
 logger.addHandler(fh)
