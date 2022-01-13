@@ -162,7 +162,7 @@ def getLegos(pdf):
 
 def getLegosCSV(csvName,pieceType):
     legos = []
-    fb = open(csvName, 'rb')
+    fb = open(csvName, 'r')
     reader = csv.DictReader(fb)
     for line in reader:
         line[pieceType] = int(line['pieces'])
@@ -512,7 +512,7 @@ if __name__ == '__main__':
                             '''get attachment url and download the csv'''
                             attachmentObj = ss.getAttachment(sheetID,attachments[a]['id'])
                             fh = urllib.request.urlopen(attachmentObj['url'])
-                            localfile = open('tmp.csv','w')
+                            localfile = open('tmp.csv','wb')
                             localfile.write(fh.read())
                             localfile.close()
                     if (attachments[a]['mimeType'] == 'application/pdf') and (row['procType'] == 'pdf' or row['procType'] == 'True' ):
