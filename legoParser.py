@@ -93,6 +93,7 @@ def legoDetail(legos,columns,rebrickableAPIKey):
         legos[i]['color'] = details['color']['name']
       if setPic == True:
         legos[i]['picture'] = details['element_img_url']
+      logger.debug(details)
       time.sleep(1)
     logger.debug(legos[i])
     i += 1
