@@ -31,8 +31,11 @@ class smartsheet:
   def getWorkspace(self,workspaceID):
       return self.smartsheetRequest('workspaces',workspaceID)
   
-  def getAttachments(self,sheetID):
-      return self.smartsheetRequest('sheets',sheetID,action='/attachments?includeAll=True')
+  def getAttachments(self,sheetID,row_id=None):
+      action='/attachments?includeAll=True'
+      if row_id:
+        action = f'/rows/{row_id}{action}'
+      return self.smartsheetRequest('sheets',sheetID,action=action)
   
   def getAttachment(self,sheetID,attachmentID):
       return self.smartsheetRequest('sheets',sheetID,action=f'/attachments/{attachmentID}')
