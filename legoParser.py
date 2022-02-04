@@ -394,12 +394,11 @@ def getLegoImage(url):
 look to see if a sheet exists for this set,
 if not create one
 '''
-def getSetSheet(thisSet):
+def getSetSheet(set_id, desc):
     data = {} 
-    setId = thisSet['set']
-    sheetName = thisSet['desc'] + " - "  + str(setId)
+    sheetName = f"{desc} - {set_id}"
     sheetId = False
-    regex = re.escape(setId)
+    regex = re.escape(set_id)
     workspace = ss.getWorkspace(ssWorkspace)
     for sheet in workspace['sheets']:
       if re.search(regex,sheet['name']): #, re.M|re.I):
@@ -445,6 +444,128 @@ def setUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, sheetID, co
   logger.info(setDetails)
   return setDetails
 
+#sheet_id = sheetId
+#row_id =  row['id'] = rowId
+#set_id =  row['set'] = rowSet
+#title =   row['desc'] = rowDesc
+#proc_type =  row['procType'] = str(procType)
+#download = smartsheetDown
+def row_process(ss,sheet_id,row_id, set_id, title, proc_type, rebrickableAPIKey, download=True, upload=True):
+  proc_type = str(proc_type)
+  attachmentsObj = ss.getAttachments(sheet_id,row_id)
+  if attachmentsObj['totalPages'] > 1:
+      logger.error("Row attachemts Greater the 1 Page")
+  logger.debug(attachmentsObj)
+  for attachment in attachmentsObj['data']:
+    if attachment['mimeType'] == 'application/pdf' or attachment['mimeType'] == 'text/csv':
+      pieceType = 'pieces'
+      logger.debug(f'Row: {row_id}, Set: {set_id}')
+      logger.debug(attachment)
+      #count += 1 #debug gone
+      if download == True:
+          if attachment['mimeType'] == 'application/pdf':
+              logger.debug(f"Getting attachmentID: {attachment['id']}")
+              '''get attachment url and download the pdf'''
+              attachmentObj = ss.getAttachment(sheet_id,attachment['id'])
+              fh = urllib.request.urlopen(attachmentObj['url'])
+              localfile = open('tmp.pdf','wb')
+              localfile.write(fh.read())
+              localfile.close()
+          elif attachment['mimeType'] == 'text/csv':
+              '''get attachment url and download the csv'''
+              attachmentObj = ss.getAttachment(sheet_id,attachment['id'])
+              fh = urllib.request.urlopen(attachmentObj['url'])
+              localfile = open('tmp.csv','wb')
+              localfile.write(fh.read())
+              localfile.close()
+      if (attachment['mimeType'] == 'application/pdf') and (proc_type == 'pdf' or proc_type == 'True' ):
+          '''process the PDF and get the legos back'''
+          try:
+              legos = getLegos('tmp.pdf')
+          except:
+              logger.error(f"Failed: {row_id}")
+              logger.debug(traceback.print_exc())
+              break
+      elif (attachment['mimeType'] == 'text/csv') and (proc_type == 'csv' or proc_type == 'True'):
+          if re.search(r'spares',attachment['name'], re.I):
+            pieceType = 'spares'
+          if re.search(r'extra',attachment['name'], re.I):
+            pieceType = 'extra'
+          '''process the CSV and get the legos back'''
+          try:
+              legos = getLegosCSV('tmp.csv',pieceType)
+          except:
+              logger.error(f"Failed: {row_id}")
+              logger.debug(traceback.print_exc())
+              break
+      else:
+        logger.error(f"No useable attachments for Set {set_id}, Row {row_id}")
+
+      blockCount = 0
+      for lego in legos:
+          blockCount += int(lego[pieceType])
+      logger.info("File: " + attachment['name'])
+      logger.info("Total: " + str(blockCount))
+      logger.info("Types: " + str(len(legos)))
+      if blockCount > 0:
+        setSheetID = getSetSheet(set_id, title)
+        setSheet = ss.getSheet(setSheetID)
+        '''build list of columns'''
+        setColumnId = getColumns(setSheet)
+        logger.debug(columnId)
+
+        '''get the current lego list'''
+        ssLegos = getSSLegos(setSheet,setColumnId,False)
+        logger.debug(ssLegos)
+        ''' seperate out the legos we already have'''
+        newLegos,oldLegos = sortLegos(legos,ssLegos,set_id,pieceType)
+        logger.info("New Legos: "+str(len(newLegos)))
+        logger.info("Old Legos: "+str(len(oldLegos)))
+        logger.info("Total: "+str(len(newLegos)+len(oldLegos)) +" (should equal above 'Types' count)")
+        '''get the dictionary ready for smartsheet'''
+        try:
+          newLegos = sorted(newLegos,key=itemgetter('order'))
+        except:
+          pass
+        logger.info('process pieces for full details')
+        fullDataNew = legoDetail(newLegos,setColumnId,rebrickableAPIKey)
+        fullDataOld = legoDetail(oldLegos,setColumnId,rebrickableAPIKey)
+        ssDataNew = prepData(newLegos,setColumnId)
+        ssDataOld = prepData(oldLegos,setColumnId)
+        if debug == 'smartsheet':
+            logger.debug("New:")
+            logger.debug(ssDataNew)
+            logger.debug("Old:")
+            logger.debug(ssDataOld)
+        '''prepare to uncheck the box so it doesn't get reprocessed'''
+        checkData = {"id":attachment['parentId'],"cells":[{"columnId":columnId['process'], "value":False}]}
+        if upload == True:
+            '''upload the data'''
+            resultNew = ss.insertRows(setSheetID,ssDataNew)
+            logger.debug(resultNew)
+            if resultNew['resultCode'] == 0:
+                resultOld = ss.updateRows(setSheetID,ssDataOld)
+                logger.debug(resultOld)
+            '''if the save succeded uncheck the processing box'''
+            if resultNew['resultCode'] == 0 and resultOld['resultCode'] == 0:
+                ss.updateRows(sheet_id,checkData)
+            '''
+            Find, Download and attache the indivual images for the pieces
+            '''
+            logger.info("Downloading Piece images")
+            setSheet = ss.getSheet(setSheetID)
+            ssLegos = getSSLegos(setSheet,setColumnId,True)
+            i = 0
+            for lego in ssLegos:
+                if 'url' in lego: # and a > 12:
+                    logger.debug(lego)
+                    image,size = getLegoImage(lego['url'])
+                    if image:
+                        logger.info(f"Uploading Image with size of {size}")
+                        results = ss.addCellImage(setSheetID,lego,setColumnId,image,size)
+                i += 1
+  return
+
 '''
 Main loop
 '''
@@ -466,13 +587,6 @@ if __name__ == '__main__':
     columnId = getColumns(sheet)
     if debug == 'smartsheet':
         logger.debug(columnId)
-        input("Press Enter to continue...")
-
-    '''Get list of attachments'''
-    logger.info("Getting the attachments")
-    attachments = ss.getAttachments(sheetID)
-    if debug == 'smartsheet':
-        logger.debug(attachments)
         input("Press Enter to continue...")
 
     rows = []
@@ -517,15 +631,13 @@ if __name__ == '__main__':
                 except KeyError:
                     continue
         if rowId and rowSet:
-            row['id'] = rowId
-            row['set'] = rowSet
-            row['desc'] = rowDesc
-            row['procType'] = str(procType)
-            rows.append(row)
+            row_process(ss,sheetID,rowId, rowSet, rowDesc, procType, rebrickableAPIKey, download=smartsheetDown, upload=smartsheetUp)
+
         if rowSet and (rowDesc == False or rowPhoto == False):
             setDetails = setUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rebrickableAPIKey, sheetID, columnId, ss)
             if len(setDetails) > 1:
               sets.append(setDetails)
+
     if len(sets) > 0:
       logger.debug(sets)
       ssSetDetails = prepData(sets,columnId)
@@ -539,141 +651,3 @@ if __name__ == '__main__':
     if debug == 'smartsheet':
         logger.debug(rows)
         input("Press Enter to continue...")
-    '''
-    Performance Help:
-       Run through the list of rows to be processed and select out only the needed attachments?
-    '''
-    '''run through all sheet attacments'''
-    logger.info(f"Going through attachments")
-    attachments = sorted(attachments['data'],key=itemgetter('parentId','mimeType'))
-    rows = sorted(rows,key=itemgetter('id'))
-    a = 0
-    count = 0
-    for row in rows:
-        logger.info("Set: " + str(row['desc']) + " - " + str(row['set']))
-        if a < len(attachments):
-            while attachments[a]['parentId'] <= row['id']:
-                if attachments[a]['parentId'] == row['id'] and attachments[a]['parentType'] == 'ROW' and (attachments[a]['mimeType'] == 'application/pdf' or attachments[a]['mimeType'] == 'text/csv') :
-                    pieceType = 'pieces'
-                    if debug == 'smartsheet':
-                        logger.debug(row)
-                        logger.debug(attachments[a])
-                    count += 1 #debug
-                    if smartsheetDown == True:
-                        if attachments[a]['mimeType'] == 'application/pdf':
-                            logger.debug(f"Getting attachmentID: {attachments[a]['id']}")
-                            '''get attachment url and download the pdf'''
-                            attachmentObj = ss.getAttachment(sheetID,attachments[a]['id'])
-                            fh = urllib.request.urlopen(attachmentObj['url'])
-                            localfile = open('tmp.pdf','wb')
-                            localfile.write(fh.read())
-                            localfile.close()
-                        elif attachments[a]['mimeType'] == 'text/csv':
-                            '''get attachment url and download the csv'''
-                            attachmentObj = ss.getAttachment(sheetID,attachments[a]['id'])
-                            fh = urllib.request.urlopen(attachmentObj['url'])
-                            localfile = open('tmp.csv','wb')
-                            localfile.write(fh.read())
-                            localfile.close()
-                    if (attachments[a]['mimeType'] == 'application/pdf') and (row['procType'] == 'pdf' or row['procType'] == 'True' ):
-                        '''process the PDF and get the legos back'''
-                        try:
-                            legos = getLegos('tmp.pdf')
-                        except:
-                            logger.error("Failed: "+ str(row))
-                            logger.debug(traceback.print_exc())
-                            break
-                    elif (attachments[a]['mimeType'] == 'text/csv') and (row['procType'] == 'csv' or row['procType'] == 'True'):
-                        if re.search(r'spares',attachments[a]['name'], re.I):
-                          pieceType = 'spares'
-                        if re.search(r'extra',attachments[a]['name'], re.I):
-                          pieceType = 'extra'
-                        '''process the CSV and get the legos back'''
-                        try:
-                            legos = getLegosCSV('tmp.csv',pieceType) 
-                        except:
-                            logger.error("Failed: "+ str(row))
-                            logger.debug(traceback.print_exc())
-                            break
-                    else:
-                        a += 1
-                        continue
-                    blockCount = 0
-                    for lego in legos:
-                        blockCount += int(lego[pieceType])
-                    logger.info("File: " + attachments[a]['name'])
-                    logger.info("Total: " + str(blockCount))
-                    logger.info("Types: " + str(len(legos)))
-                    if debug == 'approve':
-                        input("Press Enter For Next")
-                    if blockCount > 0:
-                      setSheetID = getSetSheet(row)
-                      setSheet = ss.getSheet(setSheetID)
-                      '''build list of columns'''
-                      setColumnId = getColumns(setSheet)
-                      if debug == 'smartsheet':
-                          logger.debug(columnId)
-                          input("Press Enter to continue...")
-
-                      '''get the current lego list'''
-                      ssLegos = getSSLegos(setSheet,setColumnId,False)
-                      if debug == 'smartsheet':
-                          logger.debug(ssLegos)
-                      ''' seperate out the legos we already have'''
-                      newLegos,oldLegos = sortLegos(legos,ssLegos,row['set'],pieceType)
-                      logger.info("New Legos: "+str(len(newLegos)))
-                      logger.info("Old Legos: "+str(len(oldLegos)))
-                      logger.info("Total: "+str(len(newLegos)+len(oldLegos)) +" (should equal above 'Types' count)")
-                      '''get the dictionary ready for smartsheet'''
-                      try:
-                        newLegos = sorted(newLegos,key=itemgetter('order'))
-                      except:
-                        pass
-                      logger.info('process pieces for full details')
-                      fullDataNew = legoDetail(newLegos,setColumnId,rebrickableAPIKey)
-                      fullDataOld = legoDetail(oldLegos,setColumnId,rebrickableAPIKey)
-                      ssDataNew = prepData(newLegos,setColumnId)
-                      ssDataOld = prepData(oldLegos,setColumnId)
-                      if debug == 'smartsheet':
-                          logger.debug("New:")
-                          logger.debug(ssDataNew)
-                          logger.debug("Old:")
-                          logger.debug(ssDataOld)
-                      '''prepare to uncheck the box so it doesn't get reprocessed'''
-                      checkData = {"id":attachments[a]['parentId'],"cells":[{"columnId":columnId['process'], "value":False}]}
-                      if smartsheetUp == True:
-                          '''upload the data'''
-                          resultNew = ss.insertRows(setSheetID,ssDataNew)
-                          if debug == 'requests':
-                              logger.debug(resultNew)
-                          if resultNew['resultCode'] == 0:
-                              resultOld = ss.updateRows(setSheetID,ssDataOld)
-                              logger.debug(resultOld)
-                          '''if the save succeded uncheck the processing box'''
-                          if resultNew['resultCode'] == 0 and resultOld['resultCode'] == 0:
-                              ss.updateRows(sheetID,checkData)
-                          '''
-                          Find, Download and attache the indivual images for the pieces
-                          '''
-                          logger.info("Downloading Piece images")
-                          setSheet = ss.getSheet(setSheetID)
-                          ssLegos = getSSLegos(setSheet,setColumnId,True)
-                          i = 0
-                          for lego in ssLegos:
-                              if 'url' in lego: # and a > 12:
-                                  logger.debug(lego)
-                                  image,size = getLegoImage(lego['url'])
-                                  if image:
-                                      logger.info(f"Uploading Image with size of {size}")
-                                      results = ss.addCellImage(setSheetID,lego,setColumnId,image,size)
-                              i += 1
-                      if debug == 'smartsheet':
-                          logger.debug(sheet)
-                          input("Press Enter to continue...")
-                      '''Stop after only some sets?'''
-                      if countLimit == True:
-                          if count > 0:
-                              exit()
-                a += 1
-                if a>= len(attachments):
-                    break
