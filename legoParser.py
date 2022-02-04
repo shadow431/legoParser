@@ -14,6 +14,10 @@ import re, json, urllib.request, urllib.parse,traceback, time, os, csv, rebrick,
 import logging
 from smartsheet import smartsheet
 
+'''
+Setup Logging
+'''
+
 logFile='legoParser.log'
 #logging.basicConfig(level=logging.DEBUG,filename=logFile)
 logger = logging.getLogger('legoparser')
@@ -53,7 +57,7 @@ def getColumns(sheet):
     return columnId
 
 '''
-Fill in the blanks
+Fill in the blanks for the bricks
 '''
 def legoDetail(legos,columns,rebrickableAPIKey):
   i = 0
@@ -101,7 +105,7 @@ def legoDetail(legos,columns,rebrickableAPIKey):
 
 
 '''
-this function takes a pdf and pulls the data and returns the full set of legos from the pdf
+this function takes a pdf and pulls the data and returns the full set of lego bricks from the pdf
 '''
 def getLegos(pdf):
     legos = []
@@ -173,7 +177,7 @@ def getLegosCSV(csvName,pieceType):
     return legos
 
 '''
-prepare the data for ss.
+prepare the data for Smartsheet.
 Here the columnId and lego dictionary keys need to match
 this stiches everything together to build the smartsheet rows with parentId
 '''
@@ -203,7 +207,7 @@ def prepData(legos, columnIds):
     return ssdata
 
 '''''
-Get a list of the legos currently in the sheet to check for existing blocks
+Get a list of the bricks currently in the sheet to check for existing blocks
 '''''
 def getSSLegos(sheet,columnId,pictures):
     ssLegos = []
@@ -246,11 +250,6 @@ def getSSLegos(sheet,columnId,pictures):
                     lego['extra'] = cell['value']
                 except KeyError:
                     continue
-#            if cell['columnId'] == columnId['sets']:
-#                try:
-#                    lego['sets'] = cell['displayValue']
-#                except KeyError:
-#                    lego['sets'] = ''
             if cell['columnId'] == columnId['picture']:# and pictures:
                 logger.debug(cell)
                 try:
@@ -271,9 +270,10 @@ def getSSLegos(sheet,columnId,pictures):
     return ssLegos
 
 '''
-seperate out the legos into two groups
+seperate out the bricks into two groups
 the ones that I already have some of,
 and the ones i dont yet have any of
+Is this really needed any more? was for when it was a single sheet for all the pieces, will i ever want to increment the list?
 '''
 def sortLegos(legos,ssLegos,legoSet,pieceType):
     new = []
@@ -411,6 +411,10 @@ def getSetSheet(set_id, desc):
       sheetId = newSheet['result']['id']
     return sheetId
 
+
+'''
+Take a sets details and update them with rebrickable info
+'''
 def setUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, sheetID, columnId, ss):
   logger.debug("Update: "+json.dumps({'row': rowId, 'item': itemID, 'photo': photo, 'release': release})) 
   setDetails = {}
@@ -444,12 +448,10 @@ def setUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, sheetID, co
   logger.info(setDetails)
   return setDetails
 
-#sheet_id = sheetId
-#row_id =  row['id'] = rowId
-#set_id =  row['set'] = rowSet
-#title =   row['desc'] = rowDesc
-#proc_type =  row['procType'] = str(procType)
-#download = smartsheetDown
+
+'''
+Process a row for attachments and create/update a Set inventory sheet based off them
+'''
 def row_process(ss,sheet_id,row_id, set_id, title, proc_type, rebrickableAPIKey, download=True, upload=True):
   proc_type = str(proc_type)
   attachmentsObj = ss.getAttachments(sheet_id,row_id)
@@ -602,6 +604,7 @@ if __name__ == '__main__':
         rowPhoto = False
         rowDesc = False
         rowRelease = False
+        '''Check the data for a set and see if its marked for processing, or if it has missing fields'''
         for cell in each['cells']:
             if (cell['columnId'] == columnId['process']):
                 try:
@@ -630,14 +633,16 @@ if __name__ == '__main__':
                     rowPhoto=cell['image']
                 except KeyError:
                     continue
+        '''If rowId is set, meaning process column is checked, proccess the attachments to create an inventory sheet'''
         if rowId and rowSet:
             row_process(ss,sheetID,rowId, rowSet, rowDesc, procType, rebrickableAPIKey, download=smartsheetDown, upload=smartsheetUp)
-
+        '''If the set is missing a photo or description check rebrickable to try and fill them in'''
         if rowSet and (rowDesc == False or rowPhoto == False):
             setDetails = setUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rebrickableAPIKey, sheetID, columnId, ss)
             if len(setDetails) > 1:
               sets.append(setDetails)
 
+    '''update any sets with updated info from rebrickabl'''
     if len(sets) > 0:
       logger.debug(sets)
       ssSetDetails = prepData(sets,columnId)
@@ -646,8 +651,3 @@ if __name__ == '__main__':
       logger.debug(result)
       if result['resultCode'] != 0:
           logger.error(result)
-
-    logger.info(f"{len(rows)} rows to process attachments")
-    if debug == 'smartsheet':
-        logger.debug(rows)
-        input("Press Enter to continue...")
