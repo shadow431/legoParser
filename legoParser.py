@@ -20,7 +20,7 @@ logger = logging.getLogger('legoparser')
 logger.setLevel(logging.DEBUG)
 fh = logging.FileHandler(logFile)
 #fh.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(message)s')
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 
