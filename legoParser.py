@@ -353,6 +353,27 @@ def getSets(legoID,rebrickAPIKey):
     return parts
 
 '''
+Get the lego Theme details from rebrickable
+'''
+def getTheme(themeID,rebrickAPIKey):
+    waitTime = 10
+    rebrick.init(rebrickAPIKey)
+    while True:
+      try:
+        response = rebrick.lego.get_theme(themeID)
+      except HTTPError as err:
+          if err.code == 429:
+            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
+            time.sleep(waitTime)
+            waitTime += waitTime
+            continue
+          else:
+            raise
+      break
+    parts = json.loads(response.read())
+    return parts
+
+'''
 Get the lego part and images from rebrickable
 '''
 def getLegoImage(url):
@@ -412,6 +433,8 @@ def setUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, sheetID, co
         results = ss.addCellImage(sheetID,setDetails,columnId,image,size)
     if release == False:
       setDetails['release'] = legoSet['results'][0]['year']
+    rbTheme = getTheme(legoSet['results'][0]['theme_id'],rebrickableAPIKey)
+    logger.debug(rbTheme)
     del setDetails['id']
   elif legoSet['count'] > 1:
     logger.debug("To May options for "+itemID)
