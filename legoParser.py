@@ -374,40 +374,38 @@ def pick_a_set(sets, set_id):
 '''
 Take a sets details and update them with rebrickable info
 '''
-def setUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, sheetID, columnId, ss):
+def setUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, data, columnId, ss):
+  sheetID = data['id']
   logger.debug("Update: "+json.dumps({'row': rowId, 'item': itemID, 'photo': photo, 'release': release})) 
   setDetails = {}
   setDetails['row'] = rowId
   setDetails['id'] = itemID
-  legoSet = getSets(itemID,rebrickableAPIKey)
-  logger.debug(legoSet)
-  if legoSet['count'] == 1:
-    rebrickSet = legoSet['results'][0]
-  elif legoSet['count'] > 1:
+  legoDetails = getRebrickData(itemID,data['type'],rebrickableAPIKey)
+  logger.debug(legoDetails)
+  if legoDetails['count'] == 1:
+    rebrickDetail = legoDetails['results'][0]
+  elif legoDetails['count'] > 1:
     logger.debug("To May options for "+itemID)
-    rebrickSet = pick_a_set(legoSet['results'], itemID)
-    logger.debug(f"Posible Match: {rebrickSet}")
-  elif legoSet['count'] == 0:
+    rebrickDetail = pick_a_set(legoDetails['results'], itemID)
+    logger.debug(f"Posible Match: {rebrickDetail}")
+  elif legoDetails['count'] == 0:
     logger.debug("No Options for "+itemID)
-    rebrickSet = {}
-  #setDetails['id'] = legoSet['results'][0]['set_num'] #rebrickable setnum
-  if len(rebrickSet) > 0:
-    setDetail = getSet(rebrickSet['set_num'],rebrickableAPIKey)
-    logger.debug("Got Set Details")
-    logger.debug(setDetail)
+    rebrickDetail = {}
+  #setDetails['id'] = legoDetails['results'][0]['set_num'] #rebrickable setnum
+  if len(rebrickDetail) > 0:
     logger.debug("Updating Set info")
     if desc == False:
-      setDetails['description'] = rebrickSet['name']
-    elif desc != rebrickSet['name'] and re.search(r'\(',desc) == None:
-      setDetails['description'] = rebrickSet['name'] + " ("+desc +")"
+      setDetails['description'] = rebrickDetail['name']
+    elif desc != rebrickDetail['name'] and re.search(r'\(',desc) == None:
+      setDetails['description'] = rebrickDetail['name'] + " ("+desc +")"
     if photo == False:
-      image,size = getLegoImage(rebrickSet['set_img_url'])
+      image,size = getLegoImage(rebrickDetail['set_img_url'])
       if image:
         logger.info(f"Uploading Image with size of {size}")
         results = ss.addCellImage(sheetID,setDetails,columnId,image,size)
     if release == False:
-      setDetails['release'] = rebrickSet['year']
-    rbTheme = getTheme(rebrickSet['theme_id'],rebrickableAPIKey)
+      setDetails['release'] = rebrickDetail['year']
+    rbTheme = getTheme(rebrickDetail['theme_id'],rebrickableAPIKey)
     logger.debug(rbTheme)
     del setDetails['id']
     logger.info(setDetails)
@@ -415,6 +413,40 @@ def setUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, sheetID, co
     setDetails = {}
   return setDetails
 
+'''
+Take an elemenets details and update them with rebrickable info
+'''
+def elementUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, data, columnId, ss, design, color):
+  sheetID = data['id']
+  logger.debug("Update: "+json.dumps({'row': rowId, 'item': itemID, 'Description': desc, 'photo': photo, 'release': release, 'design': design, 'color': color}))
+  elementDetails = {}
+  elementDetails['row'] = rowId
+  elementDetails['id'] = itemID
+  legoDetails = getRebrickData(itemID,data['type'],rebrickableAPIKey)
+  logger.debug(legoDetails)
+  rebrickDetail = legoDetails
+  if len(rebrickDetail) > 0:
+    logger.debug("Updating Set info")
+    if desc == False:
+      elementDetails['description'] = rebrickDetail['part']['name']
+    elif desc != rebrickDetail['part']['name'] and re.search(r'\(',desc) == None:
+      setDetails['description'] = rebrickDetail['part']['name'] + " ("+desc +")"
+    if photo == False:
+      image,size = getLegoImage(rebrickDetail['element_img_url'])
+      if image:
+        logger.info(f"Uploading Image with size of {size}")
+        results = ss.addCellImage(sheetID,elementDetails,columnId,image,size)
+    if release == False:
+      elementDetails['release'] = rebrickDetail['part']['year_from']
+    if design == False:
+      elementDetails['design'] = rebrickDetail['design_id']
+    if color == False:
+      elementDetails['color'] = rebrickDetail['color']['name']
+    del elementDetails['id']
+    logger.info(elementDetails)
+  else:
+    elementDetails = {}
+  return elementDetails
 
 '''
 Process a row for attachments and create/update a Set inventory sheet based off them
