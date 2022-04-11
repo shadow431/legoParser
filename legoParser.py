@@ -709,3 +709,33 @@ if __name__ == '__main__':
       logger.debug(result)
       if result['resultCode'] != 0:
           logger.error(result)
+##########################################################
+    logger.info("Proccessing Elements sheet")
+    logger.info("Downloading the Sheet")
+    elements = ss.getSheet(elementsID)
+    if debug == 'smartsheet':
+        logger.debug(elements)
+        input("Press Enter to continue...")
+
+    '''build list of columns'''
+    logger.info("Getting Element Columns")
+    elementColumns = getColumns(elements)
+    if debug == 'smartsheet':
+        logger.debug(elementColumns)
+        input("Press Enter to continue...")
+
+    ssLegos = getSSLegos(elements,elementColumns,False)
+    fullDataOld = legoDetail(ssLegos,elementColumns,rebrickableAPIKey)
+    ssDataOld = prepData(fullDataOld,elementColumns)
+    resultOld = ss.updateRows(elementsID,ssDataOld)
+    elements = ss.getSheet(elementsID)
+    ssLegos = getSSLegos(elements,elementColumns,True)
+    i = 0
+    for lego in ssLegos:
+        if 'url' in lego: # and a > 12:
+            logger.debug(lego)
+            image,size = getLegoImage(lego['url'])
+            if image:
+                logger.info(f"Uploading Image with size of {size}")
+                results = ss.addCellImage(elementsID,lego,elementColumns,image,size)
+        i += 1
