@@ -38,26 +38,46 @@ using the sheet data, get a dictionary of columnId's that we care about
 def getColumns(sheet):
     columnId ={}
     for column in sheet['columns']:
+        #SETLIST,SAMLIST,SETS,ELEMENTS
         if column['title'] == 'Id':
             columnId['id'] = column['id']
+        if column['title'] == 'Description':
+            columnId['description'] = column['id']
+        if column['title'] == 'Picture':
+            columnId['picture'] = column['id']
+        if column['title'] == 'Release':
+            columnId['release'] = column['id']
         if column['title'] == 'Pieces':
             columnId['pieces'] = column['id']
+        if column['title'] == 'Color':
+            columnId['color'] = column['id']
+
+        #SETLIST,SAMLIST
+        if column['title'] == 'Theme':
+            columnId['theme'] = column['id']
+        if column['title'] == 'MSRP':
+            columnId['msrp'] = column['id']
+        if column['title'] == 'Value':
+            columnId['value'] = column['id']
+
+        #SETS,ELEMENTS
+        if column['title'] == 'Design':
+            columnId['design'] = column['id']
+
+        #SETS
         if column['title'] == 'Spares':
             columnId['spares'] = column['id']
         if column['title'] == 'Extra':
             columnId['extra'] = column['id']
+
+        #SETLIST
         if column['title'] == 'Process':
             columnId['process'] = column['id']
+
+        #UNUSED
         if column['title'] == 'Sets':
             columnId['sets'] = column['id']
-        if column['title'] == 'Picture':
-            columnId['picture'] = column['id']
-        if column['title'] == 'Description':
-            columnId['description'] = column['id']
-        if column['title'] == 'Color':
-            columnId['color'] = column['id']
-        if column['title'] == 'Release':
-            columnId['release'] = column['id']
+
     return columnId
 
 '''
