@@ -130,6 +130,45 @@ def getSets(legoID,rebrickAPIKey):
     return parts
 
 '''
+Get the lego Theme details from rebrickable
+'''
+def getTheme(themeID,rebrickAPIKey):
+    waitTime = 10
+    rebrick.init(rebrickAPIKey)
+    while True:
+      try:
+        response = rebrick.lego.get_theme(themeID)
+      except HTTPError as err:
+          if err.code == 429:
+            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
+            time.sleep(waitTime)
+            waitTime += waitTime
+            continue
+          else:
+            raise
+      break
+    parts = json.loads(response.read())
+    return parts
+
+'''
+Get the lego part and images from rebrickable
+'''
+def getLegoImage(url):
+    r = requests.get(url)
+    logger.debug(f"image response: {r.status_code}")
+    if len(r.content) > 0 and r.status_code == 200:
+        byteImage = BytesIO(r.content)
+        byteImage.seek(0, 2)
+        size = byteImage.tell()
+        image = r.content
+    else:
+        logger.debug(f"No Piece Image")
+        image = False
+        size = False
+    return image,size
+
+
+'''
 PROCESSING STUFF
 '''
 
@@ -313,44 +352,17 @@ def sortLegos(legos,ssLegos,legoSet,pieceType):
     return new,old
 
 '''
+If More then one set result from rebrickable, try and find the correct one
 '''
-Get the lego Theme details from rebrickable
-'''
-def getTheme(themeID,rebrickAPIKey):
-    waitTime = 10
-    rebrick.init(rebrickAPIKey)
-    while True:
-      try:
-        response = rebrick.lego.get_theme(themeID)
-      except HTTPError as err:
-          if err.code == 429:
-            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
-            time.sleep(waitTime)
-            waitTime += waitTime
-            continue
-          else:
-            raise
-      break
-    parts = json.loads(response.read())
-    return parts
-
-'''
-Get the lego part and images from rebrickable
-'''
-def getLegoImage(url):
-    r = requests.get(url)
-    logger.debug(f"image response: {r.status_code}")
-    if len(r.content) > 0 and r.status_code == 200:
-        byteImage = BytesIO(r.content)
-        byteImage.seek(0, 2)
-        size = byteImage.tell()
-        image = r.content
+def pick_a_set(sets, set_id):
+  for each in sets:
+    derived_set_id = each['set_num'].split('-')
+    if set_id == derived_set_id[0]:
+        match = each
+        break
     else:
-        logger.debug(f"No Piece Image")
-        image = False
-        size = False
-    return image,size
-    
+        match = None
+  return match
 
 '''
 Take a sets details and update them with rebrickable info
