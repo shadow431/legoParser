@@ -130,6 +130,28 @@ def getSets(legoID,rebrickAPIKey):
     return parts
 
 '''
+Get the lego set details from rebrickable
+'''
+def getSet(set_id,rebrickAPIKey):
+    waitTime = 10
+    rebrick.init(rebrickAPIKey)
+    while True:
+      try:
+        response = rebrick.lego.get_set(set_id)
+      except HTTPError as err:
+          if err.code == 429:
+            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
+            time.sleep(waitTime)
+            waitTime += waitTime
+            continue
+          else:
+            raise
+      break
+    parts = json.loads(response.read())
+    logger.debug(parts)
+    return parts
+
+'''
 Get the lego Theme details from rebrickable
 '''
 def getTheme(themeID,rebrickAPIKey):
@@ -375,29 +397,37 @@ def setUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, sheetID, co
   legoSet = getSets(itemID,rebrickableAPIKey)
   logger.debug(legoSet)
   if legoSet['count'] == 1:
-    #setDetails['id'] = legoSet['results'][0]['set_num'] #rebrickable setnum
+    rebrickSet = legoSet['results'][0]
+  elif legoSet['count'] > 1:
+    logger.debug("To May options for "+itemID)
+    rebrickSet = pick_a_set(legoSet['results'], itemID)
+    logger.debug(f"Posible Match: {rebrickSet}")
+  elif legoSet['count'] == 0:
+    logger.debug("No Options for "+itemID)
+    rebrickSet = {}
+  #setDetails['id'] = legoSet['results'][0]['set_num'] #rebrickable setnum
+  if len(rebrickSet) > 0:
+    setDetail = getSet(rebrickSet['set_num'],rebrickableAPIKey)
+    logger.debug("Got Set Details")
+    logger.debug(setDetail)
     logger.debug("Updating Set info")
     if desc == False:
-      setDetails['description'] = legoSet['results'][0]['name']
-    elif desc != legoSet['results'][0]['name'] and re.search(r'\(',desc) == None:
-      setDetails['description'] = legoSet['results'][0]['name'] + " ("+desc +")"
+      setDetails['description'] = rebrickSet['name']
+    elif desc != rebrickSet['name'] and re.search(r'\(',desc) == None:
+      setDetails['description'] = rebrickSet['name'] + " ("+desc +")"
     if photo == False:
-      image,size = getLegoImage(legoSet['results'][0]['set_img_url'])
+      image,size = getLegoImage(rebrickSet['set_img_url'])
       if image:
         logger.info(f"Uploading Image with size of {size}")
         results = ss.addCellImage(sheetID,setDetails,columnId,image,size)
     if release == False:
-      setDetails['release'] = legoSet['results'][0]['year']
-    rbTheme = getTheme(legoSet['results'][0]['theme_id'],rebrickableAPIKey)
+      setDetails['release'] = rebrickSet['year']
+    rbTheme = getTheme(rebrickSet['theme_id'],rebrickableAPIKey)
     logger.debug(rbTheme)
     del setDetails['id']
-  elif legoSet['count'] > 1:
-    logger.debug("To May options for "+itemID)
+    logger.info(setDetails)
+  else:
     setDetails = {}
-  elif legoSet['count'] == 0:
-    logger.debug("No Options for "+itemID)
-    setDetails = {}
-  logger.info(setDetails)
   return setDetails
 
 
