@@ -109,77 +109,42 @@ REBRICKABLE STUFF
 Get the lego part details from rebrickable
 '''
 def getElementDetails(legoID,rebrickAPIKey):
-    waitTime = 10
-    rebrick.init(rebrickAPIKey)
-    while True:
-      try:
-        response = rebrick.lego.get_element(legoID)
-      except HTTPError as err:
-          if err.code == 429:
-            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
-            time.sleep(waitTime)
-            waitTime += waitTime
-            continue
-          else:
-            raise
-      break
-    parts = json.loads(response.read())
-    logger.debug(parts)
-    return parts
+    return getRebrickData(legoID,'elements',rebrickAPIKey)
 
 '''
 Get the lego sets from rebrickable
 '''
 def getSets(legoID,rebrickAPIKey):
-    waitTime = 10
-    rebrick.init(rebrickAPIKey)
-    while True:
-      try:
-        response = rebrick.lego.get_sets(search=legoID)
-      except HTTPError as err:
-          if err.code == 429:
-            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
-            time.sleep(waitTime)
-            waitTime += waitTime
-            continue
-          else:
-            raise
-      break
-    parts = json.loads(response.read())
-    logger.debug(parts)
-    return parts
+    return getRebrickData(legoID,'sets',rebrickAPIKey)
 
 '''
 Get the lego set details from rebrickable
 '''
 def getSet(set_id,rebrickAPIKey):
-    waitTime = 10
-    rebrick.init(rebrickAPIKey)
-    while True:
-      try:
-        response = rebrick.lego.get_set(set_id)
-      except HTTPError as err:
-          if err.code == 429:
-            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
-            time.sleep(waitTime)
-            waitTime += waitTime
-            continue
-          else:
-            raise
-      break
-    parts = json.loads(response.read())
-    logger.debug(parts)
-    return parts
+    return getRebrickData(set_id,'set',rebrickAPIKey)
 
 '''
 Get the lego Theme details from rebrickable
 '''
 def getTheme(themeID,rebrickAPIKey):
+    return getRebrickData(themeID,'theme',rebrickAPIKey)
+
+'''
+Get the lego Theme details from rebrickable
+'''
+def getRebrickData(itemID,callType,rebrickAPIKey):
     waitTime = 10
     rebrick.init(rebrickAPIKey)
     while True:
       try:
-        response = rebrick.lego.get_theme(themeID)
+          if callType == 'elements':
+            response = rebrick.lego.get_element(itemID)
+          elif callType == 'sets':
+            response = rebrick.lego.get_sets(search=itemID)
+          elif callType == 'set':
+            response = rebrick.lego.get_set(itemID)
+          elif callType == 'theme':
+            response = rebrick.lego.get_theme(itemID)
       except HTTPError as err:
           if err.code == 429:
             logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
