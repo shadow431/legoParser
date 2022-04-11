@@ -29,6 +29,10 @@ fh.setFormatter(formatter)
 logger.addHandler(fh)
 
 '''
+SMARTSHEET STUFF
+'''
+
+'''
 using the sheet data, get a dictionary of columnId's that we care about
 '''
 def getColumns(sheet):
@@ -55,6 +59,79 @@ def getColumns(sheet):
         if column['title'] == 'Release':
             columnId['release'] = column['id']
     return columnId
+
+'''
+look to see if a sheet exists for this set,
+if not create one
+'''
+def getSetSheet(set_id, desc):
+    data = {}
+    sheetName = f"{desc} - {set_id}"
+    sheetId = False
+    regex = re.escape(set_id)
+    workspace = ss.getWorkspace(ssWorkspace)
+    for sheet in workspace['sheets']:
+      if re.search(regex,sheet['name']): #, re.M|re.I):
+        sheetId = sheet['id']
+    if sheetId == False:
+      data['destinationType'] = "folder"
+      data['destinationId'] = ssSetsFolder
+      data['newName'] = sheetName
+      newSheet = ss.copySheet(setTemplate,data)
+      sheetId = newSheet['result']['id']
+    return sheetId
+
+'''
+REBRICKABLE STUFF
+'''
+
+'''
+Get the lego part details from rebrickable
+'''
+def getElementDetails(legoID,rebrickAPIKey):
+    waitTime = 10
+    rebrick.init(rebrickAPIKey)
+    while True:
+      try:
+        response = rebrick.lego.get_element(legoID)
+      except HTTPError as err:
+          if err.code == 429:
+            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
+            time.sleep(waitTime)
+            waitTime += waitTime
+            continue
+          else:
+            raise
+      break
+    parts = json.loads(response.read())
+    logger.debug(parts)
+    return parts
+
+'''
+Get the lego sets from rebrickable
+'''
+def getSets(legoID,rebrickAPIKey):
+    waitTime = 10
+    rebrick.init(rebrickAPIKey)
+    while True:
+      try:
+        response = rebrick.lego.get_sets(search=legoID)
+      except HTTPError as err:
+          if err.code == 429:
+            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
+            time.sleep(waitTime)
+            waitTime += waitTime
+            continue
+          else:
+            raise
+      break
+    parts = json.loads(response.read())
+    logger.debug(parts)
+    return parts
+
+'''
+PROCESSING STUFF
+'''
 
 '''
 Fill in the blanks for the bricks
@@ -102,79 +179,6 @@ def legoDetail(legos,columns,rebrickableAPIKey):
     logger.debug(legos[i])
     i += 1
   return legos
-
-
-'''
-this function takes a pdf and pulls the data and returns the full set of lego bricks from the pdf
-'''
-def getLegos(pdf):
-    legos = []
-    l = 1
-
-    ''' Set parameters for pdf analysis.'''
-    laparams = LAParams()
-    rsrcmgr = PDFResourceManager()
-    fp = open(pdf, 'rb')
-    parser = PDFParser(fp)
-    document = PDFDocument(parser)
-
-    ''' Create a PDF page aggregator object.'''
-    device = PDFPageAggregator(rsrcmgr, laparams=laparams)
-    interpreter = PDFPageInterpreter(rsrcmgr, device)
-    pages = list(enumerate(PDFPage.create_pages(document)))
-    pageCount=1
-    totalPages = len(pages)
-
-    '''process each page'''
-    for pageNumber,page in pages:
-
-
-        interpreter.process_page(page)
-        # receive the LTPage object for the page.
-        layout = device.get_result()
-        pageList = []
-
-        ''' go through everything, only grabbing the text'''
-        for objType in layout:
-            objDict = {}
-            if (isinstance(objType, pdfminer.layout.LTTextBoxHorizontal)):
-                 objDict['height'] = objType.y1
-                 objDict['width'] = objType.x0
-                 objDict['text'] = objType.get_text()
-                 pageList.append(objDict)
-
-        '''
-        find the text we are looking for and ignore the rest
-        '''
-        pageLegos = []
-        if debug == 'pdf':
-            logger.debug(pageCount)
-        for item in pageList:
-            matchItem = False
-            #matchItem = re.match(r'(\d+)x ?\n(\d+)\n',item['text'], re.M|re.I)
-            matchItem = re.search(r'(\d+)x ?\n(\d+)\n',item['text'], re.M|re.I)
-            if matchItem:
-               lego = {}
-               lego['pieces'] = int(matchItem.group(1))
-               lego['id'] = matchItem.group(2)
-               lego['order'] = l
-               pageLegos.append(lego)
-               l += 1
-        if len(pageLegos) > 1:
-            legos = legos + pageLegos
-        pageCount += 1
-    return legos
-
-def getLegosCSV(csvName,pieceType):
-    legos = []
-    fb = open(csvName, 'r')
-    reader = csv.DictReader(fb)
-    for line in reader:
-        line[pieceType] = int(line['pieces'])
-        if pieceType != 'pieces':
-          del line['pieces']
-        legos.append(line)
-    return legos
 
 '''
 prepare the data for Smartsheet.
@@ -309,49 +313,6 @@ def sortLegos(legos,ssLegos,legoSet,pieceType):
     return new,old
 
 '''
-Get the lego part details from rebrickable
-'''
-def getElementDetails(legoID,rebrickAPIKey):
-    waitTime = 10
-    rebrick.init(rebrickAPIKey)
-    while True:
-      try:
-        response = rebrick.lego.get_element(legoID)
-      except HTTPError as err:
-          if err.code == 429:
-            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
-            time.sleep(waitTime)
-            waitTime += waitTime
-            continue
-          else:
-            raise
-      break
-    parts = json.loads(response.read())
-    logger.debug(parts)
-    return parts
-    
-'''
-Get the lego set details from rebrickable
-'''
-def getSets(legoID,rebrickAPIKey):
-    waitTime = 10
-    rebrick.init(rebrickAPIKey)
-    while True:
-      try:
-        response = rebrick.lego.get_sets(search=legoID)
-      except HTTPError as err:
-          if err.code == 429:
-            logger.info(f'Waiting {waitTime}secs for 429: Too many requests')
-            time.sleep(waitTime)
-            waitTime += waitTime
-            continue
-          else:
-            raise
-      break
-    parts = json.loads(response.read())
-    #logger.debug(parts)
-    return parts
-
 '''
 Get the lego Theme details from rebrickable
 '''
@@ -390,27 +351,6 @@ def getLegoImage(url):
         size = False
     return image,size
     
-'''
-look to see if a sheet exists for this set,
-if not create one
-'''
-def getSetSheet(set_id, desc):
-    data = {} 
-    sheetName = f"{desc} - {set_id}"
-    sheetId = False
-    regex = re.escape(set_id)
-    workspace = ss.getWorkspace(ssWorkspace)
-    for sheet in workspace['sheets']:
-      if re.search(regex,sheet['name']): #, re.M|re.I):
-        sheetId = sheet['id']
-    if sheetId == False:
-      data['destinationType'] = "folder"
-      data['destinationId'] = ssSetsFolder
-      data['newName'] = sheetName
-      newSheet = ss.copySheet(setTemplate,data)
-      sheetId = newSheet['result']['id']
-    return sheetId
-
 
 '''
 Take a sets details and update them with rebrickable info
@@ -567,6 +507,82 @@ def row_process(ss,sheet_id,row_id, set_id, title, proc_type, rebrickableAPIKey,
                         results = ss.addCellImage(setSheetID,lego,setColumnId,image,size)
                 i += 1
   return
+'''
+ATTACHMENTS PROCESSING
+'''
+
+'''
+this function takes a pdf and pulls the data and returns the full set of lego bricks from the pdf
+'''
+def getLegos(pdf):
+    legos = []
+    l = 1
+
+    ''' Set parameters for pdf analysis.'''
+    laparams = LAParams()
+    rsrcmgr = PDFResourceManager()
+    fp = open(pdf, 'rb')
+    parser = PDFParser(fp)
+    document = PDFDocument(parser)
+
+    ''' Create a PDF page aggregator object.'''
+    device = PDFPageAggregator(rsrcmgr, laparams=laparams)
+    interpreter = PDFPageInterpreter(rsrcmgr, device)
+    pages = list(enumerate(PDFPage.create_pages(document)))
+    pageCount=1
+    totalPages = len(pages)
+
+    '''process each page'''
+    for pageNumber,page in pages:
+
+
+        interpreter.process_page(page)
+        # receive the LTPage object for the page.
+        layout = device.get_result()
+        pageList = []
+
+        ''' go through everything, only grabbing the text'''
+        for objType in layout:
+            objDict = {}
+            if (isinstance(objType, pdfminer.layout.LTTextBoxHorizontal)):
+                 objDict['height'] = objType.y1
+                 objDict['width'] = objType.x0
+                 objDict['text'] = objType.get_text()
+                 pageList.append(objDict)
+
+        '''
+        find the text we are looking for and ignore the rest
+        '''
+        pageLegos = []
+        if debug == 'pdf':
+            logger.debug(pageCount)
+        for item in pageList:
+            matchItem = False
+            #matchItem = re.match(r'(\d+)x ?\n(\d+)\n',item['text'], re.M|re.I)
+            matchItem = re.search(r'(\d+)x ?\n(\d+)\n',item['text'], re.M|re.I)
+            if matchItem:
+               lego = {}
+               lego['pieces'] = int(matchItem.group(1))
+               lego['id'] = matchItem.group(2)
+               lego['order'] = l
+               pageLegos.append(lego)
+               l += 1
+        if len(pageLegos) > 1:
+            legos = legos + pageLegos
+        pageCount += 1
+    return legos
+
+def getLegosCSV(csvName,pieceType):
+    legos = []
+    fb = open(csvName, 'r')
+    reader = csv.DictReader(fb)
+    for line in reader:
+        line[pieceType] = int(line['pieces'])
+        if pieceType != 'pieces':
+          del line['pieces']
+        legos.append(line)
+    return legos
+
 
 '''
 Main loop
