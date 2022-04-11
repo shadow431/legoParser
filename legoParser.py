@@ -566,6 +566,115 @@ def row_process(ss,sheet_id,row_id, set_id, title, proc_type, rebrickableAPIKey,
                         results = ss.addCellImage(setSheetID,lego,setColumnId,image,size)
                 i += 1
   return
+
+'''
+Process through the rows in a sheet to get set and element details
+'''
+
+def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
+  '''get sheet data'''
+  logger.info("Downloading the Sheet")
+  sheet = ss.getSheet(data['id'])
+  if debug == 'smartsheet':
+      logger.debug(sheet)
+      input("Press Enter to continue...")
+
+  '''build list of columns'''
+  logger.info("Getting Sheet Columns")
+  columnId = getColumns(sheet)
+  if debug == 'smartsheet':
+      logger.debug(columnId)
+      input("Press Enter to continue...")
+
+  sets = []
+  count = 0
+
+  '''see if the row needs to be processed'''
+  logger.info("Searching the rows for something to process")
+  for each in sheet['rows']:
+      rowId = False
+      rowSet = False
+      rowPhoto = False
+      rowDesc = False
+      rowRelease = False
+      rowDesign = False
+      rowColor = False
+
+      '''Check the data for a set and see if its marked for processing, or if it has missing fields'''
+      for cell in each['cells']:
+          if (cell['columnId'] == columnId['id']):
+              try:
+                  rowSet=cell['displayValue']
+              except KeyError:
+                  continue
+          if (cell['columnId'] == columnId['description']):
+              try:
+                  rowDesc=cell['displayValue']
+              except KeyError:
+                  continue
+          if (cell['columnId'] == columnId['release']):
+              try:
+                  rowRelease=cell['displayValue']
+              except KeyError:
+                  continue
+          if (cell['columnId'] == columnId['picture']):
+              try:
+                  rowPhoto=cell['image']
+              except KeyError:
+                  continue
+          try:
+            if (cell['columnId'] == columnId['process']):
+                try:
+                    if cell['value'] == True or cell['value'] == 'pdf' or cell['value'] == 'csv':
+                        rowId=each['id']
+                        procType = cell['value']
+                except KeyError:
+                    continue
+          except KeyError:
+              pass
+          try:
+            if (cell['columnId'] == columnId['design']):
+              try:
+                  rowDesign=cell['displayValue']
+              except KeyError:
+                  continue
+          except KeyError:
+              pass
+          try:
+            if (cell['columnId'] == columnId['color']):
+              try:
+                  rowcolor=cell['displayValue']
+              except KeyError:
+                  continue
+          except KeyError:
+              pass
+      '''If rowId is set, meaning process column is checked, proccess the attachments to create an inventory sheet'''
+      if rowId and rowSet:
+          row_process(ss,data['id'], rowId, rowSet, rowDesc, procType, rebrickableAPIKey, download=smartsheetDown, upload=smartsheetUp)
+      '''If the set is missing a photo or description check rebrickable to try and fill them in'''
+      if rowSet and (rowDesc == False or rowPhoto == False):
+          if data['type'] == 'sets':
+            setDetails = setUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rebrickableAPIKey, data, columnId, ss)
+          elif data['type'] == 'elements':
+            logger.info("do something elemenetal here")
+            setDetails = elementUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rebrickableAPIKey, data, columnId, ss, rowDesign, rowColor)
+          else:
+            logger.info("I don't know what to do here")
+            continue
+          if len(setDetails) > 1:
+            sets.append(setDetails)
+
+  '''update any sets with updated info from rebrickabl'''
+  if len(sets) > 0:
+    logger.debug(sets)
+    ssSetDetails = prepData(sets,columnId)
+    logger.debug(ssSetDetails)
+    result = ss.updateRows(data['id'],ssSetDetails)
+    logger.debug(result)
+    if result['resultCode'] != 0:
+        logger.error(result)
+  return
+
 '''
 ATTACHMENTS PROCESSING
 '''
@@ -652,107 +761,43 @@ if __name__ == '__main__':
     logger.info("Reading Config")
     exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
     ss = smartsheet(ssToken)
-    '''get sheet data'''
-    logger.info("Downloading the Sheet")
-    sheet = ss.getSheet(sheetID)
-    if debug == 'smartsheet':
-        logger.debug(sheet)
-        input("Press Enter to continue...")
-
-    '''build list of columns'''
-    logger.info("Getting Sheet Columns")
-    columnId = getColumns(sheet)
-    if debug == 'smartsheet':
-        logger.debug(columnId)
-        input("Press Enter to continue...")
-
-    rows = []
-    sets = []
-    count = 0
-
-    '''see if the row needs to be processed'''
-    logger.info("Searching the rows for something to process")
-    for each in sheet['rows']:
-        row = {}
-        rowId = False
-        rowSet = False
-        rowPhoto = False
-        rowDesc = False
-        rowRelease = False
-        '''Check the data for a set and see if its marked for processing, or if it has missing fields'''
-        for cell in each['cells']:
-            if (cell['columnId'] == columnId['process']):
-                try:
-                    if cell['value'] == True or cell['value'] == 'pdf' or cell['value'] == 'csv':
-                        rowId=each['id']
-                        procType = cell['value']
-                except KeyError:
-                    continue
-            if (cell['columnId'] == columnId['id']):
-                try:
-                    rowSet=cell['displayValue']
-                except KeyError:
-                    continue
-            if (cell['columnId'] == columnId['description']):
-                try:
-                    rowDesc=cell['displayValue']
-                except KeyError:
-                    continue
-            if (cell['columnId'] == columnId['release']):
-                try:
-                    rowRelease=cell['displayValue']
-                except KeyError:
-                    continue
-            if (cell['columnId'] == columnId['picture']):
-                try:
-                    rowPhoto=cell['image']
-                except KeyError:
-                    continue
-        '''If rowId is set, meaning process column is checked, proccess the attachments to create an inventory sheet'''
-        if rowId and rowSet:
-            row_process(ss,sheetID,rowId, rowSet, rowDesc, procType, rebrickableAPIKey, download=smartsheetDown, upload=smartsheetUp)
-        '''If the set is missing a photo or description check rebrickable to try and fill them in'''
-        if rowSet and (rowDesc == False or rowPhoto == False):
-            setDetails = setUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rebrickableAPIKey, sheetID, columnId, ss)
-            if len(setDetails) > 1:
-              sets.append(setDetails)
-
-    '''update any sets with updated info from rebrickabl'''
-    if len(sets) > 0:
-      logger.debug(sets)
-      ssSetDetails = prepData(sets,columnId)
-      logger.debug(ssSetDetails)
-      result = ss.updateRows(sheetID,ssSetDetails)
-      logger.debug(result)
-      if result['resultCode'] != 0:
-          logger.error(result)
-##########################################################
-    logger.info("Proccessing Elements sheet")
-    logger.info("Downloading the Sheet")
-    elements = ss.getSheet(elementsID)
-    if debug == 'smartsheet':
-        logger.debug(elements)
-        input("Press Enter to continue...")
-
-    '''build list of columns'''
-    logger.info("Getting Element Columns")
-    elementColumns = getColumns(elements)
-    if debug == 'smartsheet':
-        logger.debug(elementColumns)
-        input("Press Enter to continue...")
-
-    ssLegos = getSSLegos(elements,elementColumns,False)
-    fullDataOld = legoDetail(ssLegos,elementColumns,rebrickableAPIKey)
-    ssDataOld = prepData(fullDataOld,elementColumns)
-    resultOld = ss.updateRows(elementsID,ssDataOld)
-    elements = ss.getSheet(elementsID)
-    ssLegos = getSSLegos(elements,elementColumns,True)
-    i = 0
-    for lego in ssLegos:
-        if 'url' in lego: # and a > 12:
-            logger.debug(lego)
-            image,size = getLegoImage(lego['url'])
-            if image:
-                logger.info(f"Uploading Image with size of {size}")
-                results = ss.addCellImage(elementsID,lego,elementColumns,image,size)
-        i += 1
+    sheets ={'Set List': {'id': sheetID, 'type': 'sets'}, 'Sams List': {'id': samsID, 'type': 'sets'}, 'Individuals': {'id': elementsID, 'type': 'elements'} }
+    #sheets ={'Individuals': {'id': elementsID, 'type': 'elements'} }
+    for sheet in sheets:
+      logger.info("Sheet: " + sheet)
+      logger.info(sheets[sheet])
+      sheet_proc(ss, sheets[sheet],rebrickableAPIKey,smartsheetDown,smartsheetUp)
+       
+      
+    
+#    sheet_proc(ss,sheetID,sheetType)
+###########################################################
+#    logger.info("Proccessing Elements sheet")
+#    logger.info("Downloading the Sheet")
+#    elements = ss.getSheet(elementsID)
+#    if debug == 'smartsheet':
+#        logger.debug(elements)
+#        input("Press Enter to continue...")
+#
+#    '''build list of columns'''
+#    logger.info("Getting Element Columns")
+#    elementColumns = getColumns(elements)
+#    if debug == 'smartsheet':
+#        logger.debug(elementColumns)
+#        input("Press Enter to continue...")
+#
+#    ssLegos = getSSLegos(elements,elementColumns,False)
+#    fullDataOld = legoDetail(ssLegos,elementColumns,rebrickableAPIKey)
+#    ssDataOld = prepData(fullDataOld,elementColumns)
+#    resultOld = ss.updateRows(elementsID,ssDataOld)
+#    elements = ss.getSheet(elementsID)
+#    ssLegos = getSSLegos(elements,elementColumns,True)
+#    i = 0
+#    for lego in ssLegos:
+#        if 'url' in lego: # and a > 12:
+#            logger.debug(lego)
+#            image,size = getLegoImage(lego['url'])
+#            if image:
+#                logger.info(f"Uploading Image with size of {size}")
+#                results = ss.addCellImage(elementsID,lego,elementColumns,image,size)
+#        i += 1
