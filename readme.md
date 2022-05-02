@@ -55,3 +55,11 @@
  - Put "Summary:" into the Desc column of the first row
  - func getSSLegos is the third argument 'pictures' required?
  - added theme from rebrickable to Theme Column?
+
+
+4/12/2022
+ - clean up
+ - better logic to only grab the things i need to update ie: images.
+ - add theme
+ - add MSRP
+ - add current value
