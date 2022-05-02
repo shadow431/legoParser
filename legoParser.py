@@ -430,7 +430,7 @@ def elementUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, data, c
     if desc == False:
       elementDetails['description'] = rebrickDetail['part']['name']
     elif desc != rebrickDetail['part']['name'] and re.search(r'\(',desc) == None:
-      setDetails['description'] = rebrickDetail['part']['name'] + " ("+desc +")"
+      elementDetails['description'] = rebrickDetail['part']['name'] + " ("+desc +")"
     if photo == False:
       image,size = getLegoImage(rebrickDetail['element_img_url'])
       if image:
@@ -451,7 +451,7 @@ def elementUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, data, c
 '''
 Process a row for attachments and create/update a Set inventory sheet based off them
 '''
-def row_process(ss,sheet_id,row_id, set_id, title, proc_type, rebrickableAPIKey, download=True, upload=True):
+def row_process(ss, sheet_id, columnId, row_id, set_id, title, proc_type, rebrickableAPIKey, download=True, upload=True):
   proc_type = str(proc_type)
   attachmentsObj = ss.getAttachments(sheet_id,row_id)
   if attachmentsObj['totalPages'] > 1:
@@ -513,7 +513,7 @@ def row_process(ss,sheet_id,row_id, set_id, title, proc_type, rebrickableAPIKey,
         setSheet = ss.getSheet(setSheetID)
         '''build list of columns'''
         setColumnId = getColumns(setSheet)
-        logger.debug(columnId)
+        logger.debug(setColumnId)
 
         '''get the current lego list'''
         ssLegos = getSSLegos(setSheet,setColumnId,False)
@@ -528,9 +528,9 @@ def row_process(ss,sheet_id,row_id, set_id, title, proc_type, rebrickableAPIKey,
           newLegos = sorted(newLegos,key=itemgetter('order'))
         except:
           pass
-        logger.info('process pieces for full details')
-        fullDataNew = legoDetail(newLegos,setColumnId,rebrickableAPIKey)
-        fullDataOld = legoDetail(oldLegos,setColumnId,rebrickableAPIKey)
+#        logger.info('process pieces for full details')
+#        fullDataNew = legoDetail(newLegos,setColumnId,rebrickableAPIKey)
+#        fullDataOld = legoDetail(oldLegos,setColumnId,rebrickableAPIKey)
         ssDataNew = prepData(newLegos,setColumnId)
         ssDataOld = prepData(oldLegos,setColumnId)
         if debug == 'smartsheet':
@@ -550,21 +550,23 @@ def row_process(ss,sheet_id,row_id, set_id, title, proc_type, rebrickableAPIKey,
             '''if the save succeded uncheck the processing box'''
             if resultNew['resultCode'] == 0 and resultOld['resultCode'] == 0:
                 ss.updateRows(sheet_id,checkData)
-            '''
-            Find, Download and attache the indivual images for the pieces
-            '''
-            logger.info("Downloading Piece images")
-            setSheet = ss.getSheet(setSheetID)
-            ssLegos = getSSLegos(setSheet,setColumnId,True)
-            i = 0
-            for lego in ssLegos:
-                if 'url' in lego: # and a > 12:
-                    logger.debug(lego)
-                    image,size = getLegoImage(lego['url'])
-                    if image:
-                        logger.info(f"Uploading Image with size of {size}")
-                        results = ss.addCellImage(setSheetID,lego,setColumnId,image,size)
-                i += 1
+            sheetInfo = {'id': setSheetID ,'type':'elements'}
+            sheet_proc(ss,sheetInfo,rebrickableAPIKey,download,upload)
+#            '''
+#            Find, Download and attache the indivual images for the pieces
+#            '''
+#            logger.info("Downloading Piece images")
+#            setSheet = ss.getSheet(setSheetID)
+#            ssLegos = getSSLegos(setSheet,setColumnId,True)
+#            i = 0
+#            for lego in ssLegos:
+#                if 'url' in lego: # and a > 12:
+#                    logger.debug(lego)
+#                    image,size = getLegoImage(lego['url'])
+#                    if image:
+#                        logger.info(f"Uploading Image with size of {size}")
+#                        results = ss.addCellImage(setSheetID,lego,setColumnId,image,size)
+#                i += 1
   return
 
 '''
@@ -649,8 +651,8 @@ def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
           except KeyError:
               pass
       '''If rowId is set, meaning process column is checked, proccess the attachments to create an inventory sheet'''
-      if rowId and rowSet:
-          row_process(ss,data['id'], rowId, rowSet, rowDesc, procType, rebrickableAPIKey, download=smartsheetDown, upload=smartsheetUp)
+      if rowId and rowSet and rowDesc != False:
+          row_process(ss, data['id'], columnId, rowId, rowSet, rowDesc, procType, rebrickableAPIKey, download=smartsheetDown, upload=smartsheetUp)
       '''If the set is missing a photo or description check rebrickable to try and fill them in'''
       if rowSet and (rowDesc == False or rowPhoto == False):
           if data['type'] == 'sets':
