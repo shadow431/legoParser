@@ -53,8 +53,10 @@ def getColumns(sheet):
             columnId['color'] = column['id']
 
         #SETLIST,SAMLIST
-        if column['title'] == 'Theme':
+        if column['title'] == 'Lego Theme':
             columnId['theme'] = column['id']
+        if column['title'] == 'Themes':
+            columnId['themes'] = column['id']
         if column['title'] == 'MSRP':
             columnId['msrp'] = column['id']
         if column['title'] == 'Value':
