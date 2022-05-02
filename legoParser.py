@@ -376,9 +376,9 @@ def pick_a_set(sets, set_id):
 '''
 Take a sets details and update them with rebrickable info
 '''
-def setUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, data, columnId, ss):
+def setUpdate(rowId, itemID, desc, photo, release, theme, rebrickableAPIKey, data, columnId, ss):
   sheetID = data['id']
-  logger.debug("Update: "+json.dumps({'row': rowId, 'item': itemID, 'photo': photo, 'release': release})) 
+  logger.debug("Update: "+json.dumps({'row': rowId, 'item': itemID, 'photo': photo, 'release': release, 'theme': theme})) 
   setDetails = {}
   setDetails['row'] = rowId
   setDetails['id'] = itemID
@@ -407,8 +407,13 @@ def setUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, data, colum
         results = ss.addCellImage(sheetID,setDetails,columnId,image,size)
     if release == False:
       setDetails['release'] = rebrickDetail['year']
-    rbTheme = getTheme(rebrickDetail['theme_id'],rebrickableAPIKey)
-    logger.debug(rbTheme)
+    if theme == False:
+      rbTheme = getTheme(rebrickDetail['theme_id'],rebrickableAPIKey)
+      logger.debug(rbTheme)
+      if rbTheme['parent_id'] != None:
+        rbTheme = getTheme(rbTheme['parent_id'],rebrickableAPIKey)
+        logger.debug(rbTheme)
+      setDetails['theme'] = rbTheme['name']
     del setDetails['id']
     logger.info(setDetails)
   else:
@@ -603,6 +608,7 @@ def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
       rowRelease = False
       rowDesign = False
       rowColor = False
+      rowTheme = False
 
       '''Check the data for a set and see if its marked for processing, or if it has missing fields'''
       for cell in each['cells']:
@@ -647,7 +653,15 @@ def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
           try:
             if (cell['columnId'] == columnId['color']):
               try:
-                  rowcolor=cell['displayValue']
+                  rowColor=cell['displayValue']
+              except KeyError:
+                  continue
+          except KeyError:
+              pass
+          try:
+            if (cell['columnId'] == columnId['theme']):
+              try:
+                  rowTheme=cell['displayValue']
               except KeyError:
                   continue
           except KeyError:
@@ -656,9 +670,10 @@ def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
       if rowId and rowSet and rowDesc != False:
           row_process(ss, data['id'], columnId, rowId, rowSet, rowDesc, procType, rebrickableAPIKey, download=smartsheetDown, upload=smartsheetUp)
       '''If the set is missing a photo or description check rebrickable to try and fill them in'''
-      if rowSet and (rowDesc == False or rowPhoto == False):
+      if rowSet and (rowDesc == False or rowPhoto == False or rowTheme == False):
           if data['type'] == 'sets':
-            setDetails = setUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rebrickableAPIKey, data, columnId, ss)
+            setDetails = setUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rowTheme, rebrickableAPIKey, data, columnId, ss)
+            logger.debug(len(setDetails))
           elif data['type'] == 'elements':
             logger.info("do something elemenetal here")
             setDetails = elementUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rebrickableAPIKey, data, columnId, ss, rowDesign, rowColor)
@@ -666,6 +681,7 @@ def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
             logger.info("I don't know what to do here")
             continue
           if len(setDetails) > 1:
+            logger.info("Appending Set")
             sets.append(setDetails)
 
   '''update any sets with updated info from rebrickabl'''
