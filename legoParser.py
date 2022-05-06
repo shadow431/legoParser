@@ -381,9 +381,9 @@ def pick_a_set(sets, set_id):
 '''
 Take a sets details and update them with rebrickable info
 '''
-def setUpdate(rowId, itemID, desc, photo, release, theme, rebrickableAPIKey, data, columnId, ss):
+def setUpdate(rowId, itemID, desc, photo, release, theme, pieces, rebrickableAPIKey, data, columnId, ss):
   sheetID = data['id']
-  logger.debug("Update: "+json.dumps({'row': rowId, 'item': itemID, 'photo': photo, 'release': release, 'theme': theme})) 
+  logger.debug("Update: "+json.dumps({'row': rowId, 'item': itemID, 'photo': photo, 'release': release, 'theme': theme, 'pieces': pieces}))
   setDetails = {}
   setDetails['row'] = rowId
   setDetails['id'] = itemID
@@ -412,6 +412,8 @@ def setUpdate(rowId, itemID, desc, photo, release, theme, rebrickableAPIKey, dat
         results = ss.addCellImage(sheetID,setDetails,columnId,image,size)
     if release == False:
       setDetails['release'] = rebrickDetail['year']
+    if pieces == False:
+      setDetails['pieces'] = rebrickDetail['num_parts']
     if theme == False:
       rbTheme = getTheme(rebrickDetail['theme_id'],rebrickableAPIKey)
       logger.debug(rbTheme)
@@ -614,6 +616,7 @@ def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
       rowDesign = False
       rowColor = False
       rowTheme = False
+      rowPieces = False
 
       '''Check the data for a set and see if its marked for processing, or if it has missing fields'''
       for cell in each['cells']:
@@ -671,13 +674,21 @@ def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
                   continue
           except KeyError:
               pass
+          try:
+            if (cell['columnId'] == columnId['pieces']):
+              try:
+                  rowPieces=cell['displayValue']
+              except KeyError:
+                  continue
+          except KeyError:
+              pass
       '''If rowId is set, meaning process column is checked, proccess the attachments to create an inventory sheet'''
       if rowId and rowSet and rowDesc != False:
           row_process(ss, data['id'], columnId, rowId, rowSet, rowDesc, procType, rebrickableAPIKey, download=smartsheetDown, upload=smartsheetUp)
       '''If the set is missing a photo or description check rebrickable to try and fill them in'''
       if rowSet and (rowDesc == False or rowPhoto == False):
           if data['type'] == 'sets':
-            setDetails = setUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rowTheme, rebrickableAPIKey, data, columnId, ss)
+            setDetails = setUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rowTheme, rowPieces, rebrickableAPIKey, data, columnId, ss)
             logger.debug(len(setDetails))
           elif data['type'] == 'elements':
             logger.info("do something elemenetal here")
