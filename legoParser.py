@@ -675,7 +675,7 @@ def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
       if rowId and rowSet and rowDesc != False:
           row_process(ss, data['id'], columnId, rowId, rowSet, rowDesc, procType, rebrickableAPIKey, download=smartsheetDown, upload=smartsheetUp)
       '''If the set is missing a photo or description check rebrickable to try and fill them in'''
-      if rowSet and (rowDesc == False or rowPhoto == False or rowTheme == False):
+      if rowSet and (rowDesc == False or rowPhoto == False):
           if data['type'] == 'sets':
             setDetails = setUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rowTheme, rebrickableAPIKey, data, columnId, ss)
             logger.debug(len(setDetails))
