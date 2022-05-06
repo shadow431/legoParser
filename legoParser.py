@@ -365,7 +365,12 @@ If More then one set result from rebrickable, try and find the correct one
 '''
 def pick_a_set(sets, set_id):
   for each in sets:
-    derived_set_id = each['set_num'].split('-')
+    if "-" in set_id:
+      logger.debug(f"Found hypen in {set_id}, using full {each['set_num']}")
+      derived_set_id = [each['set_num']]
+    else:
+      logger.debug(f"No hypen in {set_id}, using split {each['set_num']}")
+      derived_set_id = each['set_num'].split('-')
     if set_id == derived_set_id[0]:
         match = each
         break
@@ -781,7 +786,7 @@ if __name__ == '__main__':
     logger.info("Reading Config")
     exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
     ss = smartsheet(ssToken)
-    sheets ={'Set List': {'id': sheetID, 'type': 'sets'}, 'Sams List': {'id': samsID, 'type': 'sets'}, 'Individuals': {'id': elementsID, 'type': 'elements'} }
+    sheets ={'Set List': {'id': sheetID, 'type': 'sets'}, 'Sams List': {'id': samsID, 'type': 'sets'}, 'Individuals': {'id': elementsID, 'type': 'elements'}, 'Misc': {'id': miscID, 'type': 'sets'}, 'Minifigs': {'id': minifigID, 'type': 'sets'} }
     #sheets ={'Individuals': {'id': elementsID, 'type': 'elements'} }
     for sheet in sheets:
       logger.info("Sheet: " + sheet)
