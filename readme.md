@@ -35,6 +35,10 @@
   **smartsheetUP**
       Boolean used to set whether or not to upload the data once processed back up to smartsheet
 
+<h3>CSV</h3>
+
+names = {setnum}-spares.csv, {setnum}-extra.csv, {setnum}-pieces.csv
+columns = pieces,id
 
 <h3> ToDo</h3>
  - add requests debugging to the output for debug=requests

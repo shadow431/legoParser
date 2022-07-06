@@ -88,7 +88,11 @@ if not create one
 '''
 def getSetSheet(set_id, desc):
     data = {}
-    sheetName = f"{desc} - {set_id}"
+    id_length = len(set_id)
+    sep_length = 3
+    max_length = 50
+    remain_length = max_length - (id_length + sep_length)
+    sheetName = f"{desc[0:remain_length]} - {set_id}"
     sheetId = False
     regex = re.escape(set_id)
     workspace = ss.getWorkspace(ssWorkspace)
@@ -100,6 +104,7 @@ def getSetSheet(set_id, desc):
       data['destinationId'] = ssSetsFolder
       data['newName'] = sheetName
       newSheet = ss.copySheet(setTemplate,data)
+      logger.debug(newSheet)
       sheetId = newSheet['result']['id']
     return sheetId
 
