@@ -45,7 +45,6 @@ columns = pieces,id
    - done but down duplicate logs
  - add switch for weather or not to download the images
  - add retry logic to api/web calls
-   Done - perhaps a sing function to make web calls used by api specific functions
  - add exception handling/logging to pdf/set name parsing
  - add logic to remove "delete" rows, and add in the set name in row1 desc column, and setID in row1 Id column
     - idea: when looping though original rows create an array of rowIds that contain the word "delete" in the row for use at the end of processing
@@ -58,12 +57,10 @@ columns = pieces,id
  - Move Desc colunm to first position
  - Put "Summary:" into the Desc column of the first row
  - func getSSLegos is the third argument 'pictures' required?
- - added theme from rebrickable to Theme Column?
 
 
 4/12/2022
  - clean up
  - better logic to only grab the things i need to update ie: images.
- - add theme
  - add MSRP
  - add current value

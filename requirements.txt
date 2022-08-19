@@ -2,3 +2,4 @@ pdfminer>=20140328
 requests==2.20.0
 pillow
 rebrick
+python-dotenv

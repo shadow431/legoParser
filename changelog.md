@@ -1,3 +1,12 @@
+2022-08-19
+------
+Added DotEnv support instead of loading config.
+Added function to smartsheet.py to list webhooks
+Added Docker file for build image for running the parser
+
+Chnaged Logging to stdout
+Changed `smartsheet.smartsheetRequest endpointID to optional` to support Webhook list
+
 2021-05-26
 ------
 Bugs:

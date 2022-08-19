@@ -9,7 +9,10 @@ class smartsheet:
 
   def smartsheetRequest(self,endpoint,endpointID,data=None,method='GET',action=None,headers={}):
         headers['Authorization'] = f'Bearer {self.ssToken}'
-        url = f'https://api.smartsheet.com/2.0/{endpoint}/{endpointID}'
+        url = f'https://api.smartsheet.com/2.0/{endpoint}'
+        if endpointID:
+          url += f'/{endpointID}'
+        self.logger.debug(url)
         if action:
           url += action
         if method == 'GET':
@@ -30,7 +33,7 @@ class smartsheet:
   
   def getWorkspace(self,workspaceID):
       return self.smartsheetRequest('workspaces',workspaceID)
-  
+
   def getAttachments(self,sheetID,row_id=None):
       action='/attachments?includeAll=True'
       if row_id:
@@ -40,6 +43,9 @@ class smartsheet:
   def getAttachment(self,sheetID,attachmentID):
       return self.smartsheetRequest('sheets',sheetID,action=f'/attachments/{attachmentID}')
   
+  def listWebhooks(self):
+      return self.smartsheetRequest('webhooks',None)
+
   def insertRows(self,sheetId,data):
       jsonData = json.dumps(data)
       return self.smartsheetRequest('sheets',sheetId,action='/rows',data=jsonData,method='POST')

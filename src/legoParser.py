@@ -8,11 +8,13 @@ from pdfminer.pdfparser import PDFParser
 from PIL import Image
 from io import BytesIO
 import pdfminer
+import sys
 from operator import itemgetter
 from urllib.error import HTTPError
 import re, json, urllib.request, urllib.parse,traceback, time, os, csv, rebrick, requests
 import logging
 from smartsheet import smartsheet
+from dotenv import load_dotenv
 
 '''
 Setup Logging
@@ -21,12 +23,15 @@ Setup Logging
 logFile='legoParser.log'
 #logging.basicConfig(level=logging.DEBUG,filename=logFile)
 logger = logging.getLogger('legoparser')
+streamHandler = logging.StreamHandler(sys.stdout)
 logger.setLevel(logging.DEBUG)
 fh = logging.FileHandler(logFile)
 #fh.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(message)s')
 fh.setFormatter(formatter)
 logger.addHandler(fh)
+logger.addHandler(streamHandler)
+
 
 '''
 SMARTSHEET STUFF
@@ -596,9 +601,7 @@ def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
   '''get sheet data'''
   logger.info("Downloading the Sheet")
   sheet = ss.getSheet(data['id'])
-  if debug == 'smartsheet':
-      logger.debug(sheet)
-      input("Press Enter to continue...")
+  logger.debug(sheet)
 
   '''build list of columns'''
   logger.info("Getting Sheet Columns")
@@ -800,9 +803,28 @@ if __name__ == '__main__':
     logger.info("Starting Lego Parser")
     '''bring in config'''
     logger.info("Reading Config")
-    exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
+    #exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
+    load_dotenv()
+    sheetID = os.getenv('SHEETID')
+    samsID = os.getenv('SAMSID')
+    elementsID = os.getenv('ELEMENTSID')
+    miscID = os.getenv('MISCID')
+    minifigID = os.getenv('MINIFIGID')
+    setTemplate = os.getenv('SETTEMPLATE')
+    ssWorkspace = os.getenv('SSWORKSPACE')
+    ssSetsFolder = os.getenv('SSSETSFOLDER')
+
+    ssToken = os.getenv('SSTOKEN')
+    rebrickableAPIKey = os.getenv('REBRICKABLEAPIKEY')
+
+    countLimit = os.getenv('COUNTLIMIT')
+    debug = os.getenv('DEBUG')
+    smartsheetDown = os.getenv('SMARTSHEETDOWN')
+    smartsheetUp = os.getenv('SMARTSHEETUP')
+    logger.debug("ssToken: "+ ssToken)
     ss = smartsheet(ssToken)
     sheets ={'Set List': {'id': sheetID, 'type': 'sets'}, 'Sams List': {'id': samsID, 'type': 'sets'}, 'Individuals': {'id': elementsID, 'type': 'elements'}, 'Misc': {'id': miscID, 'type': 'sets'}, 'Minifigs': {'id': minifigID, 'type': 'sets'} }
+    logger.debug(ss.listWebhooks())
     #sheets ={'Individuals': {'id': elementsID, 'type': 'elements'} }
     for sheet in sheets:
       logger.info("Sheet: " + sheet)
