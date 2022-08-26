@@ -457,7 +457,12 @@ def elementUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, data, c
     elif desc != rebrickDetail['part']['name'] and re.search(r'\(',desc) == None:
       elementDetails['description'] = rebrickDetail['part']['name'] + " ("+desc +")"
     if photo == False:
-      image,size = getLegoImage(rebrickDetail['element_img_url'])
+      if rebrickDetail['element_img_url'] != None:
+        url = rebrickDetail['element_img_url']
+      else:
+        logger.info(f"Falling back from element_img_url to part[part_img_url] for {itemID}")
+        url = rebrickDetail['part']['part_img_url']
+      image,size = getLegoImage(url)
       if image:
         logger.info(f"Uploading Image with size of {size}")
         results = ss.addCellImage(sheetID,elementDetails,columnId,image,size)
@@ -511,7 +516,7 @@ def row_process(ss, sheet_id, columnId, row_id, set_id, title, proc_type, rebric
       if (attachment['mimeType'] == 'application/pdf') and (proc_type == 'pdf' or proc_type == 'True' ):
           '''process the PDF and get the legos back'''
           try:
-              legos = getLegos('tmp.pdf')
+              legos = getLegos('./tmp.pdf')
           except:
               logger.error(f"Failed: {row_id}")
               logger.debug(traceback.print_exc())
