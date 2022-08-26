@@ -57,6 +57,7 @@ columns = pieces,id
  - Move Desc colunm to first position
  - Put "Summary:" into the Desc column of the first row
  - func getSSLegos is the third argument 'pictures' required?
+ - Do i want to create multiple sheet when processing the same set that i have a set for?
 
 
 4/12/2022
