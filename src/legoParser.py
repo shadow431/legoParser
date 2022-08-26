@@ -24,11 +24,12 @@ logFile='legoParser.log'
 #logging.basicConfig(level=logging.DEBUG,filename=logFile)
 logger = logging.getLogger('legoparser')
 streamHandler = logging.StreamHandler(sys.stdout)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 fh = logging.FileHandler(logFile)
 #fh.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(message)s')
 fh.setFormatter(formatter)
+streamHandler.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(streamHandler)
 
@@ -476,24 +477,28 @@ def elementUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, data, c
 Process a row for attachments and create/update a Set inventory sheet based off them
 '''
 def row_process(ss, sheet_id, columnId, row_id, set_id, title, proc_type, rebrickableAPIKey, download=True, upload=True):
+  logger.info("Processing Set {set_id}")
   proc_type = str(proc_type)
+  logger.info("Getting Attachments")
   attachmentsObj = ss.getAttachments(sheet_id,row_id)
   if attachmentsObj['totalPages'] > 1:
       logger.error("Row attachemts Greater the 1 Page")
   logger.debug(attachmentsObj)
   for attachment in attachmentsObj['data']:
+    logger.info("Check Attachment Type")
     if attachment['mimeType'] == 'application/pdf' or attachment['mimeType'] == 'text/csv':
       pieceType = 'pieces'
       logger.debug(f'Row: {row_id}, Set: {set_id}')
       logger.debug(attachment)
       #count += 1 #debug gone
       if download == True:
+          logger.info("Downloading Attachment")
           if attachment['mimeType'] == 'application/pdf':
               logger.debug(f"Getting attachmentID: {attachment['id']}")
               '''get attachment url and download the pdf'''
               attachmentObj = ss.getAttachment(sheet_id,attachment['id'])
               fh = urllib.request.urlopen(attachmentObj['url'])
-              localfile = open('tmp.pdf','wb')
+              localfile = open('./tmp.pdf','wb')
               localfile.write(fh.read())
               localfile.close()
           elif attachment['mimeType'] == 'text/csv':
@@ -557,11 +562,10 @@ def row_process(ss, sheet_id, columnId, row_id, set_id, title, proc_type, rebric
 #        fullDataOld = legoDetail(oldLegos,setColumnId,rebrickableAPIKey)
         ssDataNew = prepData(newLegos,setColumnId)
         ssDataOld = prepData(oldLegos,setColumnId)
-        if debug == 'smartsheet':
-            logger.debug("New:")
-            logger.debug(ssDataNew)
-            logger.debug("Old:")
-            logger.debug(ssDataOld)
+        logger.debug("New:")
+        logger.debug(ssDataNew)
+        logger.debug("Old:")
+        logger.debug(ssDataOld)
         '''prepare to uncheck the box so it doesn't get reprocessed'''
         checkData = {"id":attachment['parentId'],"cells":[{"columnId":columnId['process'], "value":False}]}
         if upload == True:
@@ -606,9 +610,7 @@ def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
   '''build list of columns'''
   logger.info("Getting Sheet Columns")
   columnId = getColumns(sheet)
-  if debug == 'smartsheet':
-      logger.debug(columnId)
-      input("Press Enter to continue...")
+  logger.debug(columnId)
 
   sets = []
   count = 0
@@ -766,8 +768,7 @@ def getLegos(pdf):
         find the text we are looking for and ignore the rest
         '''
         pageLegos = []
-        if debug == 'pdf':
-            logger.debug(pageCount)
+        logger.debug(pageCount)
         for item in pageList:
             matchItem = False
             #matchItem = re.match(r'(\d+)x ?\n(\d+)\n',item['text'], re.M|re.I)
@@ -818,9 +819,18 @@ if __name__ == '__main__':
     rebrickableAPIKey = os.getenv('REBRICKABLEAPIKEY')
 
     countLimit = os.getenv('COUNTLIMIT')
-    debug = os.getenv('DEBUG')
-    smartsheetDown = os.getenv('SMARTSHEETDOWN')
-    smartsheetUp = os.getenv('SMARTSHEETUP')
+    logLevel = os.getenv('LOGLEVEL')
+    smartsheetDown = bool(os.getenv('SMARTSHEETDOWN'))
+    smartsheetUp = bool(os.getenv('SMARTSHEETUP'))
+    if logLevel == "DEBUG":
+      logger.setLevel(logging.DEBUG)
+    if logLevel == "INFO":
+      logger.setLevel(logging.INFO)
+
+    if logLevel == 'DEBUG':
+      logger.debug("====ENVIRONMENT====")
+      for k, v in sorted(os.environ.items()):
+          print(k+':', v)
     logger.debug("ssToken: "+ ssToken)
     ss = smartsheet(ssToken)
     sheets ={'Set List': {'id': sheetID, 'type': 'sets'}, 'Sams List': {'id': samsID, 'type': 'sets'}, 'Individuals': {'id': elementsID, 'type': 'elements'}, 'Misc': {'id': miscID, 'type': 'sets'}, 'Minifigs': {'id': minifigID, 'type': 'sets'} }
