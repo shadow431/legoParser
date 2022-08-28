@@ -795,11 +795,10 @@ def getLegosCSV(csvName,pieceType):
         legos.append(line)
     return legos
 
+def handler(event,context):
+    return main() 
 
-'''
-Main loop
-'''
-if __name__ == '__main__':
+def main():
     logger.info("Starting Lego Parser")
     '''bring in config'''
     logger.info("Reading Config")
@@ -830,7 +829,12 @@ if __name__ == '__main__':
       logger.info("Sheet: " + sheet)
       logger.info(sheets[sheet])
       sheet_proc(ss, sheets[sheet],rebrickableAPIKey,smartsheetDown,smartsheetUp)
-       
+
+'''
+Main loop
+'''
+if __name__ == '__main__':
+       main()
       
     
 #    sheet_proc(ss,sheetID,sheetType)
