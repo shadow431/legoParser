@@ -2,7 +2,7 @@
 *.csv
 *.conf
 *.conf-*
-.env
+.env*
 venv/
 *.log*
 *.bak
