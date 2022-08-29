@@ -813,10 +813,7 @@ if __name__ == '__main__':
     #exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
     load_dotenv()
     sheetID = os.getenv('SHEETID')
-    samsID = os.getenv('SAMSID')
-    elementsID = os.getenv('ELEMENTSID')
-    miscID = os.getenv('MISCID')
-    minifigID = os.getenv('MINIFIGID')
+    sheet_type = os.getenv('TYPE') #sets/elements
     setTemplate = os.getenv('SETTEMPLATE')
     ssWorkspace = os.getenv('SSWORKSPACE')
     ssSetsFolder = os.getenv('SSSETSFOLDER')
@@ -839,13 +836,9 @@ if __name__ == '__main__':
           print(k+':', v)
     logger.debug("ssToken: "+ ssToken)
     ss = smartsheet(ssToken)
-    sheets ={'Set List': {'id': sheetID, 'type': 'sets'}, 'Sams List': {'id': samsID, 'type': 'sets'}, 'Individuals': {'id': elementsID, 'type': 'elements'}, 'Misc': {'id': miscID, 'type': 'sets'}, 'Minifigs': {'id': minifigID, 'type': 'sets'} }
     logger.debug(ss.listWebhooks())
     #sheets ={'Individuals': {'id': elementsID, 'type': 'elements'} }
-    for sheet in sheets:
-      logger.info("Sheet: " + sheet)
-      logger.info(sheets[sheet])
-      sheet_proc(ss, sheets[sheet],rebrickableAPIKey,smartsheetDown,smartsheetUp)
+    sheet_proc(ss, {'id': sheetID, 'type': sheet_type},rebrickableAPIKey,smartsheetDown,smartsheetUp)
        
       
     
