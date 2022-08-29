@@ -419,6 +419,7 @@ def setUpdate(rowId, itemID, desc, photo, release, theme, pieces, rebrickableAPI
     if photo == False:
       image,size = getLegoImage(rebrickDetail['set_img_url'])
       if image:
+        setDetails['set_img_url'] = rebrickDetail['set_img_url']
         logger.info(f"Uploading Image with size of {size}")
         results = ss.addCellImage(sheetID,setDetails,columnId,image,size)
     if release == False:
