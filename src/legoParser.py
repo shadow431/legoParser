@@ -606,7 +606,7 @@ def row_process(ss, sheet_id, columnId, row_id, set_id, title, proc_type, rebric
 Process through the rows in a sheet to get set and element details
 '''
 
-def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
+def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit):
   '''get sheet data'''
   logger.info("Downloading the Sheet")
   sheet = ss.getSheet(data['id'])
@@ -714,6 +714,9 @@ def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp):
           if len(setDetails) > 1:
             logger.info("Appending Set")
             sets.append(setDetails)
+          count = count + 1
+          if countLimit && count > countLimit:
+            break
 
   '''update any sets with updated info from rebrickabl'''
   if len(sets) > 0:
@@ -805,7 +808,7 @@ def getLegosCSV(csvName,pieceType):
 '''
 Main loop
 '''
-if __name__ == '__main__':
+def handler(event, context):
     logger.info("Starting Lego Parser")
     '''bring in config'''
     logger.info("Reading Config")
@@ -824,6 +827,7 @@ if __name__ == '__main__':
     rebrickableAPIKey = os.getenv('REBRICKABLEAPIKEY')
 
     countLimit = os.getenv('COUNTLIMIT')
+    
     logLevel = os.getenv('LOGLEVEL')
     smartsheetDown = bool(os.getenv('SMARTSHEETDOWN'))
     smartsheetUp = bool(os.getenv('SMARTSHEETUP'))
@@ -836,6 +840,8 @@ if __name__ == '__main__':
       logger.debug("====ENVIRONMENT====")
       for k, v in sorted(os.environ.items()):
           print(k+':', v)
+    if countLimit:
+      logger.info("Limiiting row count to "+ countLimit)
     logger.debug("ssToken: "+ ssToken)
     ss = smartsheet(ssToken)
     sheets ={'Set List': {'id': sheetID, 'type': 'sets'}, 'Sams List': {'id': samsID, 'type': 'sets'}, 'Individuals': {'id': elementsID, 'type': 'elements'}, 'Misc': {'id': miscID, 'type': 'sets'}, 'Minifigs': {'id': minifigID, 'type': 'sets'} }
@@ -844,9 +850,10 @@ if __name__ == '__main__':
     for sheet in sheets:
       logger.info("Sheet: " + sheet)
       logger.info(sheets[sheet])
-      sheet_proc(ss, sheets[sheet],rebrickableAPIKey,smartsheetDown,smartsheetUp)
+      sheet_proc(ss, sheets[sheet],rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
+    return
        
-      
+#handler(none,none)
     
 #    sheet_proc(ss,sheetID,sheetType)
 ###########################################################
