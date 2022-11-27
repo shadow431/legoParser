@@ -59,6 +59,7 @@ columns = pieces,id
  - func getSSLegos is the third argument 'pictures' required?
  - Do i want to create multiple sheet when processing the same set that i have a set for?
 
+ - don't dump files to fs for tmp, just hold in memory
 
 4/12/2022
  - clean up
