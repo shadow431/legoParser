@@ -56,8 +56,9 @@ class smartsheet:
       return self.smartsheetRequest('sheets',sheetId,action='/rows',method='PUT',data=data)
   
   def addCellImage(self,sheetID,lego,columnId,image,imageSize):
+      self.logger.info(lego)
       headers = {}
       headers['Content-Type'] = "application/jpeg"
       headers['Content-Disposition'] = 'attachment; filename="%s.jpg"'%lego['id']
       headers['Content-Length'] = str(imageSize)
-      return self.smartsheetRequest('sheets',sheetID,action=f"/rows/{lego['row']}/columns/{columnId['picture']}/cellimages?altText={lego['id']}",headers=headers,method='POST',data=image)
+      return self.smartsheetRequest('sheets',sheetID,action=f"/rows/{lego['row']}/columns/{columnId['picture']}/cellimages?altText={lego['set_img_url']}",headers=headers,method='POST',data=image)

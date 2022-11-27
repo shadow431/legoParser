@@ -419,6 +419,7 @@ def setUpdate(rowId, itemID, desc, photo, release, theme, pieces, rebrickableAPI
     if photo == False:
       image,size = getLegoImage(rebrickDetail['set_img_url'])
       if image:
+        setDetails['set_img_url'] = rebrickDetail['set_img_url']
         logger.info(f"Uploading Image with size of {size}")
         results = ss.addCellImage(sheetID,setDetails,columnId,image,size)
     if release == False:
@@ -815,10 +816,7 @@ def handler(event, context):
     #exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
     load_dotenv()
     sheetID = os.getenv('SHEETID')
-    samsID = os.getenv('SAMSID')
-    elementsID = os.getenv('ELEMENTSID')
-    miscID = os.getenv('MISCID')
-    minifigID = os.getenv('MINIFIGID')
+    sheet_type = os.getenv('TYPE') #sets/elements
     setTemplate = os.getenv('SETTEMPLATE')
     ssWorkspace = os.getenv('SSWORKSPACE')
     ssSetsFolder = os.getenv('SSSETSFOLDER')
@@ -844,14 +842,9 @@ def handler(event, context):
       logger.info("Limiiting row count to "+ countLimit)
     logger.debug("ssToken: "+ ssToken)
     ss = smartsheet(ssToken)
-    sheets ={'Set List': {'id': sheetID, 'type': 'sets'}, 'Sams List': {'id': samsID, 'type': 'sets'}, 'Individuals': {'id': elementsID, 'type': 'elements'}, 'Misc': {'id': miscID, 'type': 'sets'}, 'Minifigs': {'id': minifigID, 'type': 'sets'} }
     logger.debug(ss.listWebhooks())
     #sheets ={'Individuals': {'id': elementsID, 'type': 'elements'} }
-    for sheet in sheets:
-      logger.info("Sheet: " + sheet)
-      logger.info(sheets[sheet])
-      sheet_proc(ss, sheets[sheet],rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
-    return
+    sheet_proc(ss, {'id': sheetID, 'type': sheet_type},rebrickableAPIKey,smartsheetDown,smartsheetUp)
        
 #handler(none,none)
     
