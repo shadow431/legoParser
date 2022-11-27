@@ -30,7 +30,7 @@ logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(message)s')
 #fh.setFormatter(formatter)
 streamHandler.setFormatter(formatter)
-logger.addHandler(fh)
+#logger.addHandler(fh)
 logger.addHandler(streamHandler)
 
 
