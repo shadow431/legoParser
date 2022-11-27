@@ -715,7 +715,7 @@ def sheet_proc(ss, data,rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit
             logger.info("Appending Set")
             sets.append(setDetails)
           count = count + 1
-          if countLimit && (count > countLimit):
+          if (countLimit != False) and (count > countLimit):
             break
 
   '''update any sets with updated info from rebrickabl'''
