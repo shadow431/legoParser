@@ -849,7 +849,7 @@ def handler(event, context):
 
     
     if countLimit:
-      logger.info("Limiting row count to "+ countLimit)
+      logger.info("Limiting row count to %d" % (countLimit))
     ss = smartsheet(ssToken)
     logger.debug(ss.listWebhooks())
     #sheets ={'Individuals': {'id': elementsID, 'type': 'elements'} }
