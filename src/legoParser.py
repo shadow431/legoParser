@@ -837,7 +837,7 @@ def handler(event, context):
 
     aws_client = aws()
     ssToken = aws_client.get_ssm_parameter(ssTokenName)
-    rebrickableAPIKey = aws.get_ssm_parameter(rebrickableAPIKeyName)
+    rebrickableAPIKey = aws_client.get_ssm_parameter(rebrickableAPIKeyName)
 
     if logLevel == "DEBUG":
       logger.setLevel(logging.DEBUG)
