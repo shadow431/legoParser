@@ -828,7 +828,7 @@ def handler(event, context):
     countLimit = os.getenv('COUNTLIMIT')
     if countLimit != "False":
       countLimit = int(countLimit)
-    else
+    else:
       countLimit = bool(countLimit)
     logLevel = os.getenv('LOGLEVEL')
     smartsheetDown = bool(os.getenv('SMARTSHEETDOWN'))
