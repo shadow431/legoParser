@@ -846,11 +846,11 @@ def handler(event, context):
 
     
     if countLimit:
-      logger.info("Limiiting row count to "+ countLimit)
+      logger.info("Limiting row count to "+ countLimit)
     ss = smartsheet(ssToken)
     logger.debug(ss.listWebhooks())
     #sheets ={'Individuals': {'id': elementsID, 'type': 'elements'} }
-    sheet_proc(ss, {'id': sheetID, 'type': sheet_type},rebrickableAPIKey,smartsheetDown,smartsheetUp)
+    sheet_proc(ss, {'id': sheetID, 'type': sheet_type},rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
        
 #handler(none,none)
     
