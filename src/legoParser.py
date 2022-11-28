@@ -14,6 +14,7 @@ from urllib.error import HTTPError
 import re, json, urllib.request, urllib.parse,traceback, time, os, csv, rebrick, requests
 import logging
 from smartsheet import smartsheet
+from aws import aws
 from dotenv import load_dotenv
 
 '''
@@ -821,14 +822,18 @@ def handler(event, context):
     ssWorkspace = os.getenv('SSWORKSPACE')
     ssSetsFolder = os.getenv('SSSETSFOLDER')
 
-    ssToken = os.getenv('SSTOKEN')
-    rebrickableAPIKey = os.getenv('REBRICKABLEAPIKEY')
+    ssTokenName = os.getenv('SSTOKEN_NAME')
+    rebrickableAPIKeyName = os.getenv('REBRICKABLEAPIKEY_NAME')
 
     countLimit = os.getenv('COUNTLIMIT')
     
     logLevel = os.getenv('LOGLEVEL')
     smartsheetDown = bool(os.getenv('SMARTSHEETDOWN'))
     smartsheetUp = bool(os.getenv('SMARTSHEETUP'))
+
+    ssToken = aws.get_ssm_parameter(ssTokenName)
+    rebrickableAPIKey = aws.get_parameter(rebrickableAPIKeyName)
+
     if logLevel == "DEBUG":
       logger.setLevel(logging.DEBUG)
     if logLevel == "INFO":
