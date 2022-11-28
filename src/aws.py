@@ -1,4 +1,4 @@
-import boto3
+import logging, boto3
 
 class aws:
     def __init__(self):
