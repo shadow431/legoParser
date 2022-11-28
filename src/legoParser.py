@@ -821,15 +821,19 @@ def handler(event, context):
     setTemplate = os.getenv('SETTEMPLATE')
     ssWorkspace = os.getenv('SSWORKSPACE')
     ssSetsFolder = os.getenv('SSSETSFOLDER')
-
+    
     ssTokenName = os.getenv('SSTOKEN_NAME')
     rebrickableAPIKeyName = os.getenv('REBRICKABLEAPIKEY_NAME')
-
+    
     countLimit = os.getenv('COUNTLIMIT')
     
     logLevel = os.getenv('LOGLEVEL')
     smartsheetDown = bool(os.getenv('SMARTSHEETDOWN'))
     smartsheetUp = bool(os.getenv('SMARTSHEETUP'))
+
+    logger.info("====ENVIRONMENT====")
+    for k, v in sorted(os.environ.items()):
+        logger.info(k+':', v)
 
     ssToken = aws.get_ssm_parameter(ssTokenName)
     rebrickableAPIKey = aws.get_parameter(rebrickableAPIKeyName)
@@ -839,10 +843,7 @@ def handler(event, context):
     if logLevel == "INFO":
       logger.setLevel(logging.INFO)
 
-    if logLevel == 'DEBUG':
-      logger.debug("====ENVIRONMENT====")
-      for k, v in sorted(os.environ.items()):
-          print(k+':', v)
+    
     if countLimit:
       logger.info("Limiiting row count to "+ countLimit)
     ss = smartsheet(ssToken)
