@@ -6,4 +6,4 @@ class aws:
     def get_ssm_parameter(self,parameter_name):
         ssm = boto3.client('ssm')
         parameter = ssm.get_parameter(Name=parameter_name, WithDecryption=True)
-        return parameter['value']
+        return parameter['parameter']['value']
