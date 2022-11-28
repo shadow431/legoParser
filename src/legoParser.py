@@ -835,7 +835,8 @@ def handler(event, context):
     for k, v in sorted(os.environ.items()):
         logger.info(k + ':' + v)
 
-    ssToken = aws.get_ssm_parameter(ssTokenName)
+    aws_client = aws()
+    ssToken = aws_client.get_ssm_parameter(ssTokenName)
     rebrickableAPIKey = aws.get_parameter(rebrickableAPIKeyName)
 
     if logLevel == "DEBUG":
