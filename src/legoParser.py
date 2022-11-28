@@ -826,7 +826,10 @@ def handler(event, context):
     rebrickableAPIKeyName = os.getenv('REBRICKABLEAPIKEY_NAME')
     
     countLimit = os.getenv('COUNTLIMIT')
-    
+    if countLimit != "False":
+      countLimit = int(countLimit)
+    else
+      countLimit = bool(countLimit)
     logLevel = os.getenv('LOGLEVEL')
     smartsheetDown = bool(os.getenv('SMARTSHEETDOWN'))
     smartsheetUp = bool(os.getenv('SMARTSHEETUP'))
