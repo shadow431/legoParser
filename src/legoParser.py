@@ -822,8 +822,8 @@ def handler(event, context):
     ssWorkspace = os.getenv('SSWORKSPACE')
     ssSetsFolder = os.getenv('SSSETSFOLDER')
     
-    ssTokenName = os.getenv('SSTOKEN_NAME')
-    rebrickableAPIKeyName = os.getenv('REBRICKABLEAPIKEY_NAME')
+    ssTokenName = os.getenv('smartsheet_api_token')
+    rebrickableAPIKeyName = os.getenv('rebrickable_api_key')
     
     countLimit = os.getenv('COUNTLIMIT')
     if countLimit != "False":
