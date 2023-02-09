@@ -814,6 +814,7 @@ def handler(event, context):
     logger.info("Starting Lego Parser")
     '''bring in config'''
     logger.info("Reading Config")
+    logger.debug("Recieved Event: ${event}")
     #exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
     load_dotenv()
     sheetID = os.getenv('SHEETID')
