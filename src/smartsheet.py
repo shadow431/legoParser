@@ -11,7 +11,7 @@ class smartsheet:
   def smartsheetRequest(self,endpoint,endpointID,data=None,method='GET',action=None,headers={}):
         headers['Authorization'] = f'Bearer {self.ssToken}'
         if self.change_agent:
-          headers['Smartsheet-Change-Agent'] = f'${self.change_agent}'
+          headers['Smartsheet-Change-Agent'] = f'{self.change_agent}'
         self.logger.debug(headers)
         url = f'https://api.smartsheet.com/2.0/{endpoint}'
         if endpointID:

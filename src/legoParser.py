@@ -814,7 +814,7 @@ def handler(event, context):
     logger.info("Starting Lego Parser")
     '''bring in config'''
     logger.info("Reading Config")
-    logger.debug(f"Recieved Event: ${event}")
+    logger.debug(f"Recieved Event: {event}")
     #exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
     load_dotenv()
     sheetID = os.getenv('SHEETID')
@@ -823,7 +823,7 @@ def handler(event, context):
     ssWorkspace = os.getenv('SSWORKSPACE')
     ssSetsFolder = os.getenv('SSSETSFOLDER')
     self_function_arn = context.invoked_function_arn
-    logger.info(f"Self ARN: ${self_function_arn}")
+    logger.info(f"Self ARN: {self_function_arn}")
     
     ssTokenName = os.getenv('smartsheet_api_token')
     rebrickableAPIKeyName = os.getenv('rebrickable_api_key')
