@@ -3,12 +3,16 @@ import logging, requests, json
 class smartsheet:
 
 
-  def __init__ (self,ssToken):
+  def __init__ (self,ssToken,change_agent=None):
     self.ssToken = ssToken
+    self.change_agent = change_agent
     self.logger = logging.getLogger('legoparser.smartsheet')
 
   def smartsheetRequest(self,endpoint,endpointID,data=None,method='GET',action=None,headers={}):
         headers['Authorization'] = f'Bearer {self.ssToken}'
+        if self.change_agent:
+          headers['Smartsheet-Change-Agent'] = f'${self.change_agent}'
+        self.logger.debug(headers)
         url = f'https://api.smartsheet.com/2.0/{endpoint}'
         if endpointID:
           url += f'/{endpointID}'

@@ -822,6 +822,8 @@ def handler(event, context):
     setTemplate = os.getenv('SETTEMPLATE')
     ssWorkspace = os.getenv('SSWORKSPACE')
     ssSetsFolder = os.getenv('SSSETSFOLDER')
+    self_function_arn = context.invoked_function_arn
+    logger.info("Self ARN: ${self_function_arn}")
     
     ssTokenName = os.getenv('smartsheet_api_token')
     rebrickableAPIKeyName = os.getenv('rebrickable_api_key')
