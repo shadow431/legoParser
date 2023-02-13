@@ -814,7 +814,7 @@ def handler(event, context):
     logger.info("Starting Lego Parser")
     '''bring in config'''
     logger.info("Reading Config")
-    logger.debug("Recieved Event: ${event}")
+    logger.debug(f"Recieved Event: ${event}")
     #exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
     load_dotenv()
     sheetID = os.getenv('SHEETID')
@@ -823,7 +823,7 @@ def handler(event, context):
     ssWorkspace = os.getenv('SSWORKSPACE')
     ssSetsFolder = os.getenv('SSSETSFOLDER')
     self_function_arn = context.invoked_function_arn
-    logger.info("Self ARN: ${self_function_arn}")
+    logger.info(f"Self ARN: ${self_function_arn}")
     
     ssTokenName = os.getenv('smartsheet_api_token')
     rebrickableAPIKeyName = os.getenv('rebrickable_api_key')
@@ -853,7 +853,7 @@ def handler(event, context):
     
     if countLimit:
       logger.info("Limiting row count to %d" % (countLimit))
-    ss = smartsheet(ssToken)
+    ss = smartsheet(ssToken,change_agent=self_function_arn)
     logger.debug(ss.listWebhooks())
     #sheets ={'Individuals': {'id': elementsID, 'type': 'elements'} }
     sheet_proc(ss, {'id': sheetID, 'type': sheet_type},rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
