@@ -746,7 +746,7 @@ def getLegos(pdf):
     laparams = LAParams()
     rsrcmgr = PDFResourceManager()
     fp = pdf
-    parser = PDFParser(fp)
+    parser = PDFParser(fp.read())
     document = PDFDocument(parser)
 
     ''' Create a PDF page aggregator object.'''
