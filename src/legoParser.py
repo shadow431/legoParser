@@ -505,6 +505,7 @@ def row_process(ss, sheet_id, columnId, row_id, set_id, title, proc_type, rebric
               '''get attachment url and download the pdf'''
               attachmentObj = ss.getAttachment(sheet_id,attachment['id'])
               fh = urllib.request.urlopen(attachmentObj['url'])
+              fb = BytesIO(fh.read())
               #localfile = open('./tmp.pdf','wb')
               #localfile.write(fh.read())
               #localfile.close()
@@ -518,7 +519,7 @@ def row_process(ss, sheet_id, columnId, row_id, set_id, title, proc_type, rebric
       if (attachment['mimeType'] == 'application/pdf') and (proc_type == 'pdf' or proc_type == 'True' ):
           '''process the PDF and get the legos back'''
           try:
-              legos = getLegos(fh)
+              legos = getLegos(fb)
           except:
               logger.error(f"Failed: {row_id}")
               logger.debug(traceback.print_exc())
@@ -745,8 +746,8 @@ def getLegos(pdf):
     ''' Set parameters for pdf analysis.'''
     laparams = LAParams()
     rsrcmgr = PDFResourceManager()
-    fp = pdf
-    parser = PDFParser(fp.read())
+    fb = pdf
+    parser = PDFParser(fb)
     document = PDFDocument(parser)
 
     ''' Create a PDF page aggregator object.'''
