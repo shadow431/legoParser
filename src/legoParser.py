@@ -1,21 +1,21 @@
-from pdfminer.layout import LAParams
-from pdfminer.converter import PDFPageAggregator
-from pdfminer.pdfinterp import PDFResourceManager
-from pdfminer.pdfinterp import PDFPageInterpreter
-from pdfminer.pdfpage import PDFPage
-from pdfminer.pdfdocument import PDFDocument
-from pdfminer.pdfparser import PDFParser
+from pdfminer.layout import LAParams # type: ignore
+from pdfminer.converter import PDFPageAggregator # type: ignore
+from pdfminer.pdfinterp import PDFResourceManager # type: ignore
+from pdfminer.pdfinterp import PDFPageInterpreter # type: ignore
+from pdfminer.pdfpage import PDFPage # type: ignore
+from pdfminer.pdfdocument import PDFDocument # type: ignore
+from pdfminer.pdfparser import PDFParser # type: ignore
 from PIL import Image
 from io import BytesIO
-import pdfminer
+import pdfminer  # type: ignore
 import sys
 from operator import itemgetter
 from urllib.error import HTTPError
-import re, json, urllib.request, urllib.parse,traceback, time, os, csv, rebrick, requests
+import re, json, urllib.request, urllib.parse,traceback, time, os, csv, rebrick, requests # type: ignore
 import logging
 from smartsheet import smartsheet
 from aws import aws
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 
 '''
 Setup Logging
