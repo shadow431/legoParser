@@ -483,7 +483,7 @@ def elementUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, data, c
 '''
 Process a row for attachments and create/update a Set inventory sheet based off them
 '''
-def row_process(ss, sheet_id, columnId, row_id, ssWorkspace, ssSetsFolder, setTemplate, set_id, title, proc_type, rebrickableAPIKey, download=True, upload=True, countLimit):
+def row_process(ss, sheet_id, columnId, row_id, ssWorkspace, ssSetsFolder, setTemplate, set_id, title, proc_type, rebrickableAPIKey, countLimit, download=True, upload=True):
   logger.info("Processing Set {set_id}")
   proc_type = str(proc_type)
   logger.info("Getting Attachments")
@@ -702,7 +702,7 @@ def sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKe
               pass
       '''If rowId is set, meaning process column is checked, proccess the attachments to create an inventory sheet'''
       if rowId and rowSet and rowDesc != False:
-          row_process(ss, data['id'], columnId, rowId, ssWorkspace, ssSetsFolder, setTemplate, rowSet, rowDesc, procType, rebrickableAPIKey, download=smartsheetDown, upload=smartsheetUp, countLimit)
+          row_process(ss, data['id'], columnId, rowId, ssWorkspace, ssSetsFolder, setTemplate, rowSet, rowDesc, procType, rebrickableAPIKey, countLimit, download=smartsheetDown, upload=smartsheetUp)
       '''If the set is missing a photo or description check rebrickable to try and fill them in'''
       if rowSet and (rowDesc == False or rowPhoto == False):
           if data['type'] == 'sets':
