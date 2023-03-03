@@ -93,7 +93,7 @@ def getColumns(sheet):
 look to see if a sheet exists for this set,
 if not create one
 '''
-def getSetSheet(set_id, desc):
+def getSetSheet(ss, set_id, desc):
     data = {}
     id_length = len(set_id)
     sep_length = 3
@@ -546,7 +546,7 @@ def row_process(ss, sheet_id, columnId, row_id, set_id, title, proc_type, rebric
       logger.info("Total: " + str(blockCount))
       logger.info("Types: " + str(len(legos)))
       if blockCount > 0:
-        setSheetID = getSetSheet(set_id, title)
+        setSheetID = getSetSheet(ss, set_id, title)
         setSheet = ss.getSheet(setSheetID)
         '''build list of columns'''
         setColumnId = getColumns(setSheet)
