@@ -93,7 +93,7 @@ def getColumns(sheet):
 look to see if a sheet exists for this set,
 if not create one
 '''
-def getSetSheet(ss, set_id, desc, ssWorkspace):
+def getSetSheet(ss, set_id, desc, ssWorkspace, ssSetsFolder, setTemplate):
     data = {}
     id_length = len(set_id)
     sep_length = 3
@@ -483,7 +483,7 @@ def elementUpdate(rowId, itemID, desc, photo, release,rebrickableAPIKey, data, c
 '''
 Process a row for attachments and create/update a Set inventory sheet based off them
 '''
-def row_process(ss, sheet_id, columnId, row_id, ssWorkspace, set_id, title, proc_type, rebrickableAPIKey, download=True, upload=True):
+def row_process(ss, sheet_id, columnId, row_id, ssWorkspace, ssSetsFolder, setTemplate, set_id, title, proc_type, rebrickableAPIKey, download=True, upload=True):
   logger.info("Processing Set {set_id}")
   proc_type = str(proc_type)
   logger.info("Getting Attachments")
@@ -546,7 +546,7 @@ def row_process(ss, sheet_id, columnId, row_id, ssWorkspace, set_id, title, proc
       logger.info("Total: " + str(blockCount))
       logger.info("Types: " + str(len(legos)))
       if blockCount > 0:
-        setSheetID = getSetSheet(ss, set_id, title, ssWorkspace)
+        setSheetID = getSetSheet(ss, set_id, title, ssWorkspace, ssSetsFolder, setTemplate)
         setSheet = ss.getSheet(setSheetID)
         '''build list of columns'''
         setColumnId = getColumns(setSheet)
@@ -609,7 +609,7 @@ def row_process(ss, sheet_id, columnId, row_id, ssWorkspace, set_id, title, proc
 Process through the rows in a sheet to get set and element details
 '''
 
-def sheet_proc(ss, ssWorkspace, data,rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit):
+def sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit):
   '''get sheet data'''
   logger.info("Downloading the Sheet")
   sheet = ss.getSheet(data['id'])
@@ -702,7 +702,7 @@ def sheet_proc(ss, ssWorkspace, data,rebrickableAPIKey,smartsheetDown,smartsheet
               pass
       '''If rowId is set, meaning process column is checked, proccess the attachments to create an inventory sheet'''
       if rowId and rowSet and rowDesc != False:
-          row_process(ss, data['id'], columnId, rowId, ssWorkspace, rowSet, rowDesc, procType, rebrickableAPIKey, download=smartsheetDown, upload=smartsheetUp)
+          row_process(ss, data['id'], columnId, rowId, ssWorkspace, ssSetsFolder, setTemplate, rowSet, rowDesc, procType, rebrickableAPIKey, download=smartsheetDown, upload=smartsheetUp)
       '''If the set is missing a photo or description check rebrickable to try and fill them in'''
       if rowSet and (rowDesc == False or rowPhoto == False):
           if data['type'] == 'sets':
@@ -857,7 +857,7 @@ def handler(event, context):
     ss = smartsheet(ssToken,change_agent=self_function_arn)
     logger.debug(ss.listWebhooks())
     #sheets ={'Individuals': {'id': elementsID, 'type': 'elements'} }
-    sheet_proc(ss, ssWorkspace, {'id': sheetID, 'type': sheet_type},rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
+    sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, {'id': sheetID, 'type': sheet_type},rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
        
 #handler(none,none)
     
