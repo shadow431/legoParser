@@ -3,3 +3,4 @@ requests
 pillow
 rebrick
 python-dotenv
+urllib3>=1.26.5 # not directly required, pinned by Snyk to avoid a vulnerability
