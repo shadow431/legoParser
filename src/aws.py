@@ -1,4 +1,4 @@
-import logging, boto3
+import logging, boto3 # type: ignore
 
 class aws:
     def __init__(self):
