@@ -4,3 +4,4 @@ pillow
 rebrick
 python-dotenv
 urllib3>=1.26.5 # not directly required, pinned by Snyk to avoid a vulnerability
+idna>=3.7 # not directly required, pinned by Snyk to avoid a vulnerability
