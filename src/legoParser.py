@@ -824,12 +824,25 @@ def handler(event, context):
     ssSetsFolder = os.getenv('SSSETSFOLDER')
     logger.info(f"Setting Log Level to {os.getenv('LOGLEVEL')}")
     logLevel = os.getenv('LOGLEVEL')
+    if logLevel == "DEBUG":
+      logger.setLevel(logging.DEBUG)
+    if logLevel == "INFO":
+      logger.setLevel(logging.INFO)
+    if logLevel == "WARNING":
+      logger.setLevel(logging.WARNING)
+    if logLevel == "ERROR":
+      logger.setLevel(logging.ERROR)
+    if logLevel == "CRITICAL":
+      logger.setLevel(logging.CRITICAL)
+
     logger.debug(f"Recieved Event: {event}")
     #exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
 
     self_function_arn = context.invoked_function_arn
     logger.info(f"Self ARN: {self_function_arn}")
     
+    #find if event dict has a nested key called change_agent
+
     ssTokenName = os.getenv('smartsheet_api_token')
     rebrickableAPIKeyName = os.getenv('rebrickable_api_key')
     
@@ -842,23 +855,23 @@ def handler(event, context):
     smartsheetDown = bool(os.getenv('SMARTSHEETDOWN'))
     smartsheetUp = bool(os.getenv('SMARTSHEETUP'))
 
-    logger.info("====ENVIRONMENT====")
+    logger.debug("====ENVIRONMENT====")
     for k, v in sorted(os.environ.items()):
-        logger.info(k + ':' + v)
+        logger.debug(k + ':' + v)
 
     aws_client = aws()
     ssToken = aws_client.get_ssm_parameter(ssTokenName)
     rebrickableAPIKey = aws_client.get_ssm_parameter(rebrickableAPIKeyName)
 
-    if logLevel == "DEBUG":
-      logger.setLevel(logging.DEBUG)
-    if logLevel == "INFO":
-      logger.setLevel(logging.INFO)
-
-    
     if countLimit:
       logger.info("Limiting row count to %d" % (countLimit))
     ss = smartsheet(ssToken,change_agent=self_function_arn)
+    logger.info(f'check if change agent is the same as the current function ARN')
+    if ss.find_change_agent(event, self_function_arn)
+      logger.info(f'change agent is the same as the current function ARN')
+      return
+    else:
+      logger.info(f'change agent is not the same as the current function ARN')
     logger.debug(ss.listWebhooks())
     #sheets ={'Individuals': {'id': elementsID, 'type': 'elements'} }
     sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, {'id': sheetID, 'type': sheet_type},rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
