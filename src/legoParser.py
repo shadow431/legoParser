@@ -25,7 +25,7 @@ logFile='legoParser.log'
 #logging.basicConfig(level=logging.DEBUG,filename=logFile)
 logger = logging.getLogger('legoparser')
 streamHandler = logging.StreamHandler(sys.stdout)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 #fh = logging.FileHandler(logFile)
 #fh.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(message)s')
@@ -816,14 +816,17 @@ def handler(event, context):
     logger.info("Starting Lego Parser")
     '''bring in config'''
     logger.info("Reading Config")
-    logger.debug(f"Recieved Event: {event}")
-    #exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
     load_dotenv()
     sheetID = os.getenv('SHEETID')
     sheet_type = os.getenv('TYPE') #sets/elements
     setTemplate = os.getenv('SETTEMPLATE')
     ssWorkspace = os.getenv('SSWORKSPACE')
     ssSetsFolder = os.getenv('SSSETSFOLDER')
+    logger.info(f"Setting Log Level to {os.getenv('LOGLEVEL')}")
+    logLevel = os.getenv('LOGLEVEL')
+    logger.debug(f"Recieved Event: {event}")
+    #exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
+
     self_function_arn = context.invoked_function_arn
     logger.info(f"Self ARN: {self_function_arn}")
     
@@ -835,7 +838,7 @@ def handler(event, context):
       countLimit = int(countLimit)
     else:
       countLimit = bool(countLimit)
-    logLevel = os.getenv('LOGLEVEL')
+    
     smartsheetDown = bool(os.getenv('SMARTSHEETDOWN'))
     smartsheetUp = bool(os.getenv('SMARTSHEETUP'))
 
