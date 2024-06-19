@@ -67,7 +67,7 @@ class smartsheet:
       headers['Content-Length'] = str(imageSize)
       return self.smartsheetRequest('sheets',sheetID,action=f"/rows/{lego['row']}/columns/{columnId['picture']}/cellimages?altText={lego['set_img_url']}",headers=headers,method='POST',data=image)
 
-  def find_change_agent(event, arn):
+  def find_change_agent(self,event,arn):
       #look for changeAgent in the event
       try:
           if event['detail']['events'][0]['changeAgent'] == arn:
