@@ -867,7 +867,7 @@ def handler(event, context):
       logger.info("Limiting row count to %d" % (countLimit))
     ss = smartsheet(ssToken,change_agent=self_function_arn)
     logger.info(f'check if change agent is the same as the current function ARN')
-    if ss.find_change_agent(event, self_function_arn)
+    if ss.find_change_agent(event, self_function_arn):
       logger.info(f'change agent is the same as the current function ARN')
       return
     else:
