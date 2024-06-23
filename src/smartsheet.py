@@ -58,7 +58,10 @@ class smartsheet:
       data = json.dumps(data)
       self.logger.debug(data)
       return self.smartsheetRequest('sheets',sheetId,action='/rows',method='PUT',data=data)
-  
+
+  def getRow(self,sheetId,row_id):
+      return self.smartsheetRequest('sheets',sheetId,action=f'/rows/{row_id}')
+
   def addCellImage(self,sheetID,lego,columnId,image,imageSize):
       self.logger.info(lego)
       headers = {}
