@@ -59,8 +59,11 @@ class smartsheet:
       self.logger.debug(data)
       return self.smartsheetRequest('sheets',sheetId,action='/rows',method='PUT',data=data)
 
-  def getRow(self,sheetId,row_id):
-      return self.smartsheetRequest('sheets',sheetId,action=f'/rows/{row_id}')
+  def getRow(self,sheetId,row_id,include=None):
+    action = f'/rows/{row_id}'
+    if include:
+      action += f'?include={include}'
+      return self.smartsheetRequest('sheets',sheetId,action=action)
 
   def addCellImage(self,sheetID,lego,columnId,image,imageSize):
       self.logger.info(lego)
