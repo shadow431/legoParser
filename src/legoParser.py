@@ -609,24 +609,7 @@ def row_process(ss, sheet_id, columnId, row_id, ssWorkspace, ssSetsFolder, setTe
 '''
 Process through the rows in a sheet to get set and element details
 '''
-
-def sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit):
-  '''get sheet data'''
-  logger.info("Downloading the Sheet")
-  sheet = ss.getSheet(data['id'])
-  logger.debug(sheet)
-
-  '''build list of columns'''
-  logger.info("Getting Sheet Columns")
-  columnId = getColumns(sheet)
-  logger.debug(columnId)
-
-  sets = []
-  count = 0
-
-  '''see if the row needs to be processed'''
-  logger.info("Searching the rows for something to process")
-  for each in sheet['rows']:
+def row_proc(row, columnId, ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit):
       rowId = False
       rowSet = False
       rowPhoto = False
@@ -638,7 +621,7 @@ def sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKe
       rowPieces = False
 
       '''Check the data for a set and see if its marked for processing, or if it has missing fields'''
-      for cell in each['cells']:
+      for cell in row['cells']:
           if (cell['columnId'] == columnId['id']):
               try:
                   rowSet=cell['displayValue']
@@ -663,7 +646,7 @@ def sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKe
             if (cell['columnId'] == columnId['process']):
                 try:
                     if cell['value'] == True or cell['value'] == 'pdf' or cell['value'] == 'csv':
-                        rowId=each['id']
+                        rowId=row['id']
                         procType = cell['value']
                 except KeyError:
                     continue
@@ -707,20 +690,41 @@ def sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKe
       '''If the set is missing a photo or description check rebrickable to try and fill them in'''
       if rowSet and (rowDesc == False or rowPhoto == False):
           if data['type'] == 'sets':
-            setDetails = setUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rowTheme, rowPieces, rebrickableAPIKey, data, columnId, ss)
+            setDetails = setUpdate(row['id'], rowSet, rowDesc, rowPhoto, rowRelease, rowTheme, rowPieces, rebrickableAPIKey, data, columnId, ss)
             logger.debug(len(setDetails))
           elif data['type'] == 'elements':
             logger.info("do something elemenetal here")
-            setDetails = elementUpdate(each['id'], rowSet, rowDesc, rowPhoto, rowRelease, rebrickableAPIKey, data, columnId, ss, rowDesign, rowColor)
+            setDetails = elementUpdate(row['id'], rowSet, rowDesc, rowPhoto, rowRelease, rebrickableAPIKey, data, columnId, ss, rowDesign, rowColor)
           else:
             logger.info("I don't know what to do here")
             continue
-          if len(setDetails) > 1:
-            logger.info("Appending Set")
-            sets.append(setDetails)
+          return setDetails
 
-          if (countLimit != False) and (len(sets) >= countLimit):
-            break
+def sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit):
+  '''get sheet data'''
+  logger.info("Downloading the Sheet")
+  sheet = ss.getSheet(data['id'])
+  logger.debug(sheet)
+
+  '''build list of columns'''
+  logger.info("Getting Sheet Columns")
+  columnId = getColumns(sheet)
+  logger.debug(columnId)
+
+  sets = []
+  count = 0
+
+  '''see if the row needs to be processed'''
+  logger.info("Searching the rows for something to process")
+  for each in sheet['rows']:
+    setDetails = row_proc(each, columnId, ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
+
+    if len(setDetails) > 1:
+      logger.info("Appending Set")
+      sets.append(setDetails)
+
+    if (countLimit != False) and (len(sets) >= countLimit):
+      break
 
   '''update any sets with updated info from rebrickabl'''
   if len(sets) > 0:
