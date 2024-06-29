@@ -619,6 +619,7 @@ def row_proc(row, columnId, ss, ssWorkspace, ssSetsFolder, setTemplate, data,reb
       rowColor = False
       rowTheme = False
       rowPieces = False
+      setDetails = []
 
       '''Check the data for a set and see if its marked for processing, or if it has missing fields'''
       for cell in row['cells']:
@@ -697,8 +698,7 @@ def row_proc(row, columnId, ss, ssWorkspace, ssSetsFolder, setTemplate, data,reb
             setDetails = elementUpdate(row['id'], rowSet, rowDesc, rowPhoto, rowRelease, rebrickableAPIKey, data, columnId, ss, rowDesign, rowColor)
           else:
             logger.info("I don't know what to do here")
-            continue
-          return setDetails
+      return setDetails
 
 def sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit):
   '''get sheet data'''
