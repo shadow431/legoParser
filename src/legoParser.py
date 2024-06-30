@@ -699,6 +699,45 @@ def row_proc(row, columnId, ss, ssWorkspace, ssSetsFolder, setTemplate, data,reb
           else:
             logger.info("I don't know what to do here")
       return setDetails
+def process_rows(event, ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit):
+   '''get sheet data'''
+
+  sets = []
+  count = 0
+
+  logger.info("Find Rows to Process")
+  for event in events['detail']['events']:
+    if event['objectType'] == 'row' and event['eventTyep'] == 'created':
+      row_id = event['id']
+
+      logger.info("Getting the Row")
+      sheet_row = ss.getRow(data['id'],row_id,include="columns")
+      logger.debug(sheet_row)
+
+      '''build list of columns'''
+      logger.info("Getting Sheet Columns")
+      columnId = getColumns(sheet_row)
+      logger.debug(columnId)
+
+      setDetails = row_proc(sheet_row, columnId, ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
+
+      if len(setDetails) > 1:
+        logger.info("Appending Set")
+        sets.append(setDetails)
+
+      if (countLimit != False) and (len(sets) >= countLimit):
+        break
+
+  '''update any sets with updated info from rebrickabl'''
+  if len(sets) > 0:
+    logger.debug(sets)
+    ssSetDetails = prepData(sets,columnId)
+    logger.debug(ssSetDetails)
+    result = ss.updateRows(data['id'],ssSetDetails)
+    logger.debug(result)
+    if result['resultCode'] != 0:
+        logger.error(result)
+  return
 
 def sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, data,rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit):
   '''get sheet data'''
@@ -878,7 +917,11 @@ def handler(event, context):
       logger.info(f'change agent is not the same as the current function ARN')
     logger.debug(ss.listWebhooks())
     #sheets ={'Individuals': {'id': elementsID, 'type': 'elements'} }
-    sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, {'id': sheetID, 'type': sheet_type},rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
+    if event.has_key('row_created'):
+      if event['row_created'] == True:
+        process_rows(event, ss, ssWorkspace, ssSetsFolder, setTemplate, {'id': sheetID, 'type': sheet_type},rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
+    else:
+      sheet_proc(ss, ssWorkspace, ssSetsFolder, setTemplate, {'id': sheetID, 'type': sheet_type},rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
        
 #handler(none,none)
     
