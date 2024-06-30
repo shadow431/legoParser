@@ -917,7 +917,7 @@ def handler(event, context):
       logger.info(f'change agent is not the same as the current function ARN')
     logger.debug(ss.listWebhooks())
     #sheets ={'Individuals': {'id': elementsID, 'type': 'elements'} }
-    if event.has_key('row_created'):
+    if 'row_created' in event:
       if event['row_created'] == True:
         process_rows(event, ss, ssWorkspace, ssSetsFolder, setTemplate, {'id': sheetID, 'type': sheet_type},rebrickableAPIKey,smartsheetDown,smartsheetUp,countLimit)
     else:
