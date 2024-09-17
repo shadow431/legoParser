@@ -878,6 +878,15 @@ def handler(event, context):
     if logLevel == "CRITICAL":
       logger.setLevel(logging.CRITICAL)
 
+    if 'detail' in event:
+       if ('scope' in event['detail']) and ('scopeObjectId' in event['detail']):
+         if event['detail']['scope'] == 'sheet':
+           logger.info(f"Event for sheet {event['detail']['scopeObjectId']}, overriding Environment Variable")
+           sheetID = event['detail']['scopeObjectId']
+         else:
+           logger.info(f"Event not for sheet a sheet")
+           return
+
     logger.debug(f"Recieved Event: {event}")
     #exec(compile(open("legoParser.conf").read(), "legoParser.conf", 'exec'), locals())
 
